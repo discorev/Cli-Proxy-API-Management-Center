@@ -3,8 +3,6 @@ import type { SponsorProviderRaw } from './types';
 
 export const APIKEY_FUN_PROVIDER_NAME = 'apikeyFun';
 export const APIKEY_FUN_DISPLAY_NAME = 'APIKEY.FUN';
-export const APIKEY_FUN_AFFILIATE_URL = 'https://apikey.fan/register?aff=AKCPA';
-export const APIKEY_FUN_DASHBOARD_URL = 'https://apikey.fan/dashboard';
 export const APIKEY_FUN_STANDARD_BASE_URL = 'https://api.apikey.fan';
 export const APIKEY_FUN_DIRECT_BASE_URL = 'https://slb.apikey.fan';
 export const APIKEY_FUN_OPENAI_BASE_URL = `${APIKEY_FUN_STANDARD_BASE_URL}/v1`;
@@ -189,8 +187,3 @@ export const buildApiKeyFunRaw = (config: Config | null | undefined): SponsorPro
     .filter((item) => isApiKeyFunCodexProvider(item.config)),
   gemini: [],
 });
-
-export const hasApiKeyFunConfig = (config: Config | null | undefined): boolean => {
-  const raw = buildApiKeyFunRaw(config);
-  return raw.openai.length > 0 || raw.claude.length > 0 || raw.codex.length > 0;
-};

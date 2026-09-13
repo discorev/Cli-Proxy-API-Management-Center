@@ -9,8 +9,6 @@ export const KIMI_OPENAI_BASE_URL = `${KIMI_LEGACY_OPENAI_BASE_URL}/v1`;
 export const KIMI_DOMESTIC_OPENAI_BASE_URL = `${KIMI_DOMESTIC_BASE_URL}/v1`;
 export const KIMI_ANTHROPIC_BASE_URL = `${KIMI_LEGACY_OPENAI_BASE_URL}/anthropic`;
 export const KIMI_DOMESTIC_ANTHROPIC_BASE_URL = `${KIMI_DOMESTIC_BASE_URL}/anthropic`;
-export const KIMI_CHINESE_AFFILIATE_URL = 'https://platform.kimi.com/?aff=cliproxyapi';
-export const KIMI_INTERNATIONAL_AFFILIATE_URL = 'https://platform.kimi.ai/?aff=cliproxyapi';
 
 export const KIMI_BASE_URL_OPTIONS = [
   {
@@ -34,11 +32,6 @@ export const KIMI_BASE_URL_OPTIONS = [
 ] as const;
 
 export const KIMI_PROTOCOL_LABELS = ['openai', 'anthropic', 'codexResponses'] as const;
-
-export const getKimiAffiliateUrl = (language: string | undefined | null): string =>
-  language?.toLowerCase().startsWith('zh')
-    ? KIMI_CHINESE_AFFILIATE_URL
-    : KIMI_INTERNATIONAL_AFFILIATE_URL;
 
 const normalizeText = (value: string | undefined | null): string =>
   String(value ?? '')
@@ -99,9 +92,7 @@ export const isKimiClaudeProvider = (config: ProviderKeyConfig | undefined | nul
 export const isKimiCodexProvider = (config: ProviderKeyConfig | undefined | null): boolean => {
   if (!config) return false;
   const baseUrl = normalizeBaseUrl(config.baseUrl);
-  return KIMI_BASE_URL_OPTIONS.some(
-    (option) => baseUrl === normalizeBaseUrl(option.codexBaseUrl)
-  );
+  return KIMI_BASE_URL_OPTIONS.some((option) => baseUrl === normalizeBaseUrl(option.codexBaseUrl));
 };
 
 export const buildKimiRaw = (config: Config | null | undefined): SponsorProviderRaw => ({

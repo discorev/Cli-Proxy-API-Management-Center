@@ -92,12 +92,6 @@
     background: #000;
   }
 
-  .featuredActions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: $spacing-sm;
-  }
-
   :global(.btn-primary) {
     border-color: #1783ff;
     background: #1783ff;
@@ -118,22 +112,6 @@
 
 :global([data-theme='dark']) .featuredCard .cardTitleIcon {
   background: #fff;
-}
-
-.recommendedBadge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 24px;
-  padding: 3px 9px;
-  border: 1px solid rgba(23, 131, 255, 0.34);
-  border-radius: $radius-full;
-  background: rgba(23, 131, 255, 0.11);
-  color: color-mix(in srgb, #1783ff 82%, var(--text-primary));
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1;
-  white-space: nowrap;
 }
 
 .featuredHint {

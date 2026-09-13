@@ -3,7 +3,6 @@ import type { SponsorProviderRaw } from './types';
 
 export const QINIU_CLOUD_PROVIDER_NAME = 'qiniuCloud';
 export const QINIU_CLOUD_DISPLAY_NAME = '七牛云';
-export const QINIU_CLOUD_AFFILIATE_URL = 'https://s.qiniu.com/miI73q';
 export const QINIU_CLOUD_DOMESTIC_BASE_URL = 'https://api.qnaigc.com';
 export const QINIU_CLOUD_OVERSEAS_BASE_URL = 'https://api.modelink.ai';
 
@@ -116,9 +115,7 @@ export const isQiniuCloudCodexProvider = (
   return matchesQiniuCloudOpenAIBaseUrl(config.baseUrl);
 };
 
-export const isQiniuCloudGeminiProvider = (
-  config: GeminiKeyConfig | undefined | null
-): boolean => {
+export const isQiniuCloudGeminiProvider = (config: GeminiKeyConfig | undefined | null): boolean => {
   if (!config) return false;
   return matchesQiniuCloudGeminiBaseUrl(config.baseUrl);
 };
