@@ -17,18 +17,21 @@ import {
   parseExcludedRulesText,
   type ExcludedModelsCatalogState,
 } from '@/components/excludedModels';
-import { hasDisableAllModelsRule } from '@/components/providers/utils';
-import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@/types';
 import type { ModelInfo } from '@/utils/models';
 import { PROVIDER_DESCRIPTORS } from '../../descriptors';
-import { readThinkingLevels } from '../../thinkingLevels';
+import { isOpenAICompatibleProviderBrand } from '../../openRouter';
 import type {
-  ApiKeyEntryInput,
   ModelEntryInput,
   ProviderBrand,
   ProviderEntryFormInput,
   ProviderResource,
 } from '../../types';
+import {
+  buildInitialProviderForm,
+  emptyApiKeyEntry,
+  emptyHeader,
+  emptyModel,
+} from './providerFormState';
 import { useConnectivityTest, type ConnectivityErrorMessages } from './useConnectivityTest';
 import { useModelDiscovery } from './useModelDiscovery';
 import { ModelDiscoveryPanel } from './ModelDiscoveryPanel';
@@ -41,6 +44,8 @@ import { MAX_CREDENTIAL_WEIGHT } from '@/utils/credentialWeight';
 /** 模块级常量，免得每次渲染都给 picker 一个新数组引用。 */
 const DISABLE_ALL_RULES = [DISABLE_ALL_RULE];
 
+const isClaudeLikeBrand = (brand: ProviderBrand): boolean => brand === 'claude';
+
 interface BaseProviderFormProps {
   brand: ProviderBrand;
   resource: ProviderResource | null;
@@ -49,159 +54,6 @@ interface BaseProviderFormProps {
   formId: string;
   onSubmit: (input: ProviderEntryFormInput) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
-}
-
-const emptyHeader = () => ({ key: '', value: '' });
-const emptyModel = (): ModelEntryInput => ({ name: '', alias: '' });
-const emptyApiKeyEntry = (): ApiKeyEntryInput => ({
-  apiKey: '',
-  proxyUrl: '',
-  weight: undefined,
-});
-const XAI_API_BASE_URL = 'https://api.x.ai/v1';
-
-const stripDisableAllRule = (list?: string[]): string[] =>
-  (list ?? []).filter((s) => s.trim() !== '*');
-
-const formatJsonObject = (value?: Record<string, unknown>): string => {
-  if (!value || Object.keys(value).length === 0) return '';
-  return JSON.stringify(value, null, 2);
-};
-
-const isClaudeLikeBrand = (brand: ProviderBrand): boolean => brand === 'claude';
-
-function buildInitialForm(
-  brand: ProviderBrand,
-  resource: ProviderResource | null,
-  mode: 'create' | 'edit'
-): ProviderEntryFormInput {
-  if (mode === 'create' || !resource) {
-    return {
-      apiKey: '',
-      name: '',
-      baseUrl: brand === 'xai' ? XAI_API_BASE_URL : '',
-      proxyUrl: '',
-      prefix: '',
-      disabled: false,
-      disableCooling: false,
-      priority: undefined,
-      weight: undefined,
-      models: [emptyModel()],
-      headers: [emptyHeader()],
-      excludedModelsText: '',
-      websockets: brand === 'codex' || brand === 'xai' ? false : undefined,
-      cloak: isClaudeLikeBrand(brand)
-        ? { mode: '', strictMode: false, sensitiveWordsText: '', cacheUserId: false }
-        : undefined,
-      fingerprintProfile: isClaudeLikeBrand(brand) ? '' : undefined,
-      testModel:
-        brand === 'openaiCompatibility' ||
-        brand === 'codex' ||
-        brand === 'xai' ||
-        isClaudeLikeBrand(brand) ||
-        brand === 'gemini' ||
-        brand === 'interactions'
-          ? ''
-          : undefined,
-      apiKeyEntries: brand === 'openaiCompatibility' ? [emptyApiKeyEntry()] : undefined,
-    };
-  }
-
-  const raw = resource.raw;
-  if (brand === 'openaiCompatibility') {
-    const cfg = raw as OpenAIProviderConfig;
-    return {
-      apiKey: '',
-      name: cfg.name ?? '',
-      baseUrl: cfg.baseUrl ?? '',
-      proxyUrl: '',
-      prefix: cfg.prefix ?? '',
-      disabled: cfg.disabled === true,
-      disableCooling: cfg.disableCooling === true,
-      priority: cfg.priority,
-      models: cfg.models?.length
-        ? cfg.models.map((m) => ({
-            name: m.name,
-            alias: m.alias ?? '',
-            priority: m.priority,
-            testModel: m.testModel,
-            image: m.image === true,
-            thinkingJson: formatJsonObject(m.thinking),
-            thinkingLevels: readThinkingLevels(m.thinking),
-          }))
-        : [emptyModel()],
-      headers: cfg.headers
-        ? Object.entries(cfg.headers).map(([k, v]) => ({ key: k, value: String(v) }))
-        : [emptyHeader()],
-      excludedModelsText: '',
-      testModel: cfg.testModel ?? '',
-      apiKeyEntries: cfg.apiKeyEntries?.length
-        ? cfg.apiKeyEntries.map((entry) => ({
-            apiKey: '',
-            existingApiKey: entry.apiKey,
-            proxyUrl: entry.proxyUrl ?? '',
-            weight: entry.weight,
-            authIndex: entry.authIndex,
-          }))
-        : [emptyApiKeyEntry()],
-    };
-  }
-
-  const cfg = raw as GeminiKeyConfig & ProviderKeyConfig;
-  const disabled = hasDisableAllModelsRule(cfg.excludedModels);
-  const excludedList = stripDisableAllRule(cfg.excludedModels);
-  return {
-    // Keep the API key blank in edit mode. Pre-filling the real key makes this
-    // password field a browser-autofill target (the saved management key can
-    // overwrite it) and defeats the "leave empty = keep unchanged" contract; an
-    // empty field is preserved on save via buildProviderKeyConfig's existing fallback.
-    apiKey: '',
-    name: '',
-    baseUrl: cfg.baseUrl ?? '',
-    proxyUrl: cfg.proxyUrl ?? '',
-    prefix: cfg.prefix ?? '',
-    disabled,
-    disableCooling: cfg.disableCooling === true,
-    priority: cfg.priority,
-    weight: cfg.weight,
-    models: cfg.models?.length
-      ? cfg.models.map((m) => ({
-          name: m.name,
-          alias: m.alias ?? '',
-          priority: m.priority,
-          testModel: m.testModel,
-          thinkingJson: formatJsonObject(m.thinking),
-          thinkingLevels: readThinkingLevels(m.thinking),
-        }))
-      : [emptyModel()],
-    headers: cfg.headers
-      ? Object.entries(cfg.headers).map(([k, v]) => ({ key: k, value: String(v) }))
-      : [emptyHeader()],
-    excludedModelsText: excludedList.join('\n'),
-    websockets:
-      brand === 'codex' || brand === 'xai'
-        ? (cfg as ProviderKeyConfig).websockets === true
-        : undefined,
-    cloak: isClaudeLikeBrand(brand)
-      ? {
-          mode: (cfg as ProviderKeyConfig).cloak?.mode ?? '',
-          strictMode: (cfg as ProviderKeyConfig).cloak?.strictMode === true,
-          sensitiveWordsText: (cfg as ProviderKeyConfig).cloak?.sensitiveWords?.join('\n') ?? '',
-          cacheUserId: (cfg as ProviderKeyConfig).cloak?.cacheUserId === true,
-        }
-      : undefined,
-    fingerprintProfile: isClaudeLikeBrand(brand)
-      ? ((cfg as ProviderKeyConfig).fingerprintProfile ?? '')
-      : undefined,
-    testModel:
-      brand === 'codex' ||
-      brand === 'xai' ||
-      isClaudeLikeBrand(brand) ||
-      brand === 'gemini' ||
-      brand === 'interactions'
-        ? ''
-        : undefined,
-  };
 }
 
 export function BaseProviderForm({
@@ -217,10 +69,10 @@ export function BaseProviderForm({
   const descriptor = PROVIDER_DESCRIPTORS[brand];
   const fid = useId();
   const [form, setForm] = useState<ProviderEntryFormInput>(() =>
-    buildInitialForm(brand, resource, mode)
+    buildInitialProviderForm(brand, resource, mode)
   );
   const [initialFormSignature] = useState<string>(() =>
-    JSON.stringify(buildInitialForm(brand, resource, mode))
+    JSON.stringify(buildInitialProviderForm(brand, resource, mode))
   );
   const [error, setError] = useState<string | null>(null);
   const [showSingleApiKey, setShowSingleApiKey] = useState(false);
@@ -236,7 +88,7 @@ export function BaseProviderForm({
 
   const fallbackApiKey = useMemo(() => {
     if (mode !== 'edit' || !resource) return '';
-    if (brand === 'openaiCompatibility') return '';
+    if (isOpenAICompatibleProviderBrand(brand)) return '';
     return (resource.raw as { apiKey?: string } | undefined)?.apiKey ?? '';
   }, [brand, mode, resource]);
 
@@ -397,10 +249,10 @@ export function BaseProviderForm({
       return t('providersPage.form.validation.baseUrlRequired');
     }
     const weights = [
-      ...(brand === 'openaiCompatibility'
+      ...(isOpenAICompatibleProviderBrand(brand)
         ? (form.apiKeyEntries ?? []).map((entry) => entry.weight)
         : []),
-      ...(brand !== 'openaiCompatibility' ? [form.weight] : []),
+      ...(!isOpenAICompatibleProviderBrand(brand) ? [form.weight] : []),
     ];
     if (weights.some((weight) => weight !== undefined && !Number.isSafeInteger(weight))) {
       return t('providersPage.form.validation.weightInteger');
@@ -481,8 +333,8 @@ export function BaseProviderForm({
     brand === 'codex' ||
     brand === 'xai' ||
     isClaudeLikeBrand(brand) ||
-    brand === 'openaiCompatibility';
-  const supportsModelImage = brand === 'openaiCompatibility';
+    isOpenAICompatibleProviderBrand(brand);
+  const supportsModelImage = isOpenAICompatibleProviderBrand(brand);
   const singleConnectivity =
     brand === 'codex' || brand === 'xai'
       ? { status: connectivity.codexStatus, run: connectivity.runCodex }
@@ -645,7 +497,7 @@ export function BaseProviderForm({
           </div>
         ) : null}
 
-        {brand !== 'openaiCompatibility' ? (
+        {!isOpenAICompatibleProviderBrand(brand) ? (
           <div className={styles.field}>
             <label className={styles.label} htmlFor={`${fid}-weight`}>
               {t('providersPage.form.weight')}

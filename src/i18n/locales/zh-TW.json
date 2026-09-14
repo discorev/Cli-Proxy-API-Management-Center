@@ -1571,7 +1571,6 @@
     },
     "categories": {
       "title": "提供商",
-      "quickFill": "快速接入",
       "activeCount": "{{active}}/{{total}} 活躍"
     },
     "providerNames": {
@@ -1581,10 +1580,8 @@
       "xai": "xAI",
       "claude": "Claude",
       "vertex": "Vertex",
+      "openrouter": "OpenRouter",
       "openaiCompatibility": "OpenAI 相容",
-      "apikeyFun": "APIKEY.FUN",
-      "fennoAI": "FennoAI",
-      "qiniuCloud": "七牛雲",
       "kimi": "Kimi"
     },
     "table": {
@@ -1610,14 +1607,6 @@
       "protocolSummary": "Anthropic / OpenAI / Gemini / Codex API (Responses)",
       "detailHint": "{{provider}} 會按協議分別寫入對應的 API Key 設定,此處只做聚合管理。",
       "apiKeyHint": "此金鑰只會寫入目前選擇的分組/協議設定。",
-      "usageCheck": "查詢額度",
-      "usageChecking": "查詢中",
-      "usageRemaining": "剩餘額度: {{amount}} {{unit}}",
-      "usageBreakdown": "已用 {{used}} / 總額 {{limit}}",
-      "usageStatus": "狀態: {{status}}",
-      "usageInvalid": "Key 無效",
-      "usageEmpty": "端點未回傳額度資料",
-      "usageApiKeyRequired": "API 金鑰必填",
       "aggregationConflict": "此聚合提供商包含多筆後端設定或多個 OpenAI 金鑰。為避免資料遺失，請在原始碼設定中編輯。",
       "partialMutationWarning": "操作失敗，但一個或多個協議可能已更新。已重新讀取最新設定，請檢查後再重試。",
       "groupedKeysTitle": "分組金鑰",
@@ -1631,18 +1620,12 @@
       "urlMode": "{{provider}} URL",
       "urlHint": "不同 URL 的使用規範一致,儲存時只會寫入目前分組協議對應位址。",
       "urlOptions": {
-        "standard": "普通 URL",
-        "direct": "專線直連 URL",
         "domestic": "中國大陸線路",
-        "overseas": "海外線路",
-        "mainlandChina": "中國大陸（推薦）",
-        "global": "全球"
+        "overseas": "海外線路"
       },
       "urlOptionDescriptions": {
         "domestic": "面向中國大陸使用者和部署在中國大陸網路環境中的業務，通常可獲得更低延遲。",
-        "overseas": "面向海外部署、跨境存取或需要存取境外模型的業務。",
-        "mainlandChinaRecommended": "推薦中國大陸使用者和部署在中國大陸網路環境中的業務使用。",
-        "global": "適用於全球其他地區的使用者和部署環境。"
+        "overseas": "面向海外部署、跨境存取或需要存取境外模型的業務。"
       },
       "modelsTitle": "協議模型設定",
       "modelsHint": "可分別限制或別名映射 Codex API、Anthropic、Gemini 與 OpenAI 相容入口的模型。",

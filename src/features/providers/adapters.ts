@@ -2,30 +2,13 @@ import type { GeminiKeyConfig, OpenAIProviderConfig, ProviderKeyConfig } from '@
 import { hasDisableAllModelsRule, stripDisableAllModelsRule } from '@/components/providers/utils';
 import { maskApiKey } from '@/utils/format';
 import {
-  APIKEY_FUN_DISPLAY_NAME,
-  APIKEY_FUN_PROTOCOLS,
-  getApiKeyFunProtocolUrls,
-  resolveApiKeyFunBaseUrl,
-} from './sponsor';
-import {
-  FENNO_AI_DISPLAY_NAME,
-  FENNO_AI_PROTOCOL_LABELS,
-  getFennoAIProtocolUrls,
-  resolveFennoAIBaseUrl,
-} from './fennoAI';
-import {
-  QINIU_CLOUD_DISPLAY_NAME,
-  QINIU_CLOUD_PROTOCOL_LABELS,
-  getQiniuCloudProtocolUrls,
-  resolveQiniuCloudBaseUrl,
-} from './qiniuCloud';
-import {
   KIMI_DISPLAY_NAME,
   KIMI_PROTOCOL_LABELS,
   getKimiProtocolUrls,
   resolveKimiBaseUrl,
 } from './kimi';
 import type {
+  OpenAICompatibleProviderBrand,
   ProviderBrand,
   ProviderResource,
   ProviderResourceSelector,
@@ -131,14 +114,18 @@ export function vertexToResource(config: ProviderKeyConfig, index: number): Prov
   return providerKeyToResource('vertex', config, index);
 }
 
-export function openaiToResource(config: OpenAIProviderConfig, index: number): ProviderResource {
+function openAICompatibleToResource(
+  brand: OpenAICompatibleProviderBrand,
+  config: OpenAIProviderConfig,
+  index: number
+): ProviderResource {
   const sourceIndex = config.sourceIndex ?? index;
   const name = (config.name ?? '').trim();
   const firstEntry = config.apiKeyEntries?.[0];
   const previewApiKey = firstEntry?.apiKey ? maskApiKey(firstEntry.apiKey) : null;
   return {
-    id: buildId('openaiCompatibility', sourceIndex, truncateForId(name) || `#${sourceIndex}`),
-    brand: 'openaiCompatibility',
+    id: buildId(brand, sourceIndex, truncateForId(name) || `#${sourceIndex}`),
+    brand,
     originalIndex: sourceIndex,
     name: name || null,
     identifier: name || `#${sourceIndex + 1}`,
@@ -159,6 +146,17 @@ export function openaiToResource(config: OpenAIProviderConfig, index: number): P
     selector: { brand: 'openaiCompatibility', name, index: sourceIndex },
     raw: config,
   };
+}
+
+export function openaiToResource(config: OpenAIProviderConfig, index: number): ProviderResource {
+  return openAICompatibleToResource('openaiCompatibility', config, index);
+}
+
+export function openRouterToResource(
+  config: OpenAIProviderConfig,
+  index: number
+): ProviderResource {
+  return openAICompatibleToResource('openrouter', config, index);
 }
 
 interface SponsorResourceOptions {
@@ -305,33 +303,6 @@ function sponsorRawToResource(
     } as ProviderResourceSelector,
     raw,
   };
-}
-
-export function apiKeyFunToResource(raw: SponsorProviderRaw): ProviderResource | null {
-  return sponsorRawToResource('apikeyFun', raw, {
-    displayName: APIKEY_FUN_DISPLAY_NAME,
-    protocolLabels: APIKEY_FUN_PROTOCOLS,
-    resolveBaseUrl: resolveApiKeyFunBaseUrl,
-    getProtocolUrls: getApiKeyFunProtocolUrls,
-  });
-}
-
-export function fennoAIToResource(raw: SponsorProviderRaw): ProviderResource | null {
-  return sponsorRawToResource('fennoAI', raw, {
-    displayName: FENNO_AI_DISPLAY_NAME,
-    protocolLabels: FENNO_AI_PROTOCOL_LABELS,
-    resolveBaseUrl: resolveFennoAIBaseUrl,
-    getProtocolUrls: getFennoAIProtocolUrls,
-  });
-}
-
-export function qiniuCloudToResource(raw: SponsorProviderRaw): ProviderResource | null {
-  return sponsorRawToResource('qiniuCloud', raw, {
-    displayName: QINIU_CLOUD_DISPLAY_NAME,
-    protocolLabels: QINIU_CLOUD_PROTOCOL_LABELS,
-    resolveBaseUrl: resolveQiniuCloudBaseUrl,
-    getProtocolUrls: getQiniuCloudProtocolUrls,
-  });
 }
 
 export function kimiToResource(raw: SponsorProviderRaw): ProviderResource | null {

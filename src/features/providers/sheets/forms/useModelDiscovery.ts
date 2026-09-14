@@ -3,6 +3,7 @@ import { modelsApi } from '@/services/api';
 import { buildHeaderObject } from '@/utils/headers';
 import { getErrorMessage } from '@/utils/helpers';
 import type { ModelInfo } from '@/utils/models';
+import { isOpenAICompatibleProviderBrand } from '../../openRouter';
 import type { ApiKeyEntryInput, ProviderBrand } from '../../types';
 
 export const MODEL_DISCOVERY_BRANDS: ReadonlyArray<ProviderBrand> = [
@@ -11,6 +12,7 @@ export const MODEL_DISCOVERY_BRANDS: ReadonlyArray<ProviderBrand> = [
   'codex',
   'xai',
   'claude',
+  'openrouter',
   'openaiCompatibility',
 ];
 
@@ -78,7 +80,7 @@ export function useModelDiscovery(args: UseModelDiscoveryArgs): UseModelDiscover
           baseHeaders,
           resolvedAuthIndex
         );
-      } else if (brand === 'openaiCompatibility') {
+      } else if (isOpenAICompatibleProviderBrand(brand)) {
         const firstEntry = (apiKeyEntries ?? []).find(
           (e) =>
             (e.apiKey ?? '').trim() || (e.existingApiKey ?? '').trim() || (e.authIndex ?? '').trim()

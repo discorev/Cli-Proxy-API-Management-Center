@@ -17,6 +17,7 @@ import { ProviderCategoryList } from './components/ProviderCategoryList';
 import { ProviderResourcePanel } from './components/ProviderResourcePanel';
 import type { ProviderPanelControls } from './components/ProviderResourcePanel';
 import { ProviderSheet, type ProviderSheetHandle } from './sheets/ProviderSheet';
+import { isOpenAICompatibleProviderBrand } from './openRouter';
 import { isMultiProtocolSponsorBrand } from './sponsorDefinitions';
 import { isSponsorPartialMutationError } from './sponsorMutationRecovery';
 import { useProviderWorkbench } from './useProviderWorkbench';
@@ -79,7 +80,7 @@ const getResourceRecentSuccess = (
   if (isMultiProtocolSponsorBrand(resource.brand)) {
     return 0;
   }
-  if (resource.brand === 'openaiCompatibility') {
+  if (isOpenAICompatibleProviderBrand(resource.brand)) {
     return getOpenAIProviderRecentWindowStats(resource.raw as OpenAIProviderConfig, usageByProvider)
       .success;
   }

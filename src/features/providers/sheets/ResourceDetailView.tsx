@@ -4,6 +4,7 @@ import { IconCheck, IconX } from '@/components/ui/icons';
 import { getProviderTotalStats, type ProviderRecentUsageMap } from '@/components/providers/utils';
 import type { OpenAIProviderConfig } from '@/types';
 import { maskApiKey } from '@/utils/format';
+import { isOpenAICompatibleProviderBrand } from '../openRouter';
 import {
   getSponsorProviderDefinition,
   isMultiProtocolSponsorBrand,
@@ -116,8 +117,9 @@ export function ResourceDetailView({ resource, usageByProvider }: ResourceDetail
     ['apiKeyEntries', String(resource.apiKeyEntryCount)],
   ];
 
-  const openaiConfig =
-    resource.brand === 'openaiCompatibility' ? (resource.raw as OpenAIProviderConfig) : null;
+  const openaiConfig = isOpenAICompatibleProviderBrand(resource.brand)
+    ? (resource.raw as OpenAIProviderConfig)
+    : null;
   const apiKeyEntries = openaiConfig?.apiKeyEntries ?? [];
 
   return (

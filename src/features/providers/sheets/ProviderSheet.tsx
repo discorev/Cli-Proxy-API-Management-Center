@@ -5,6 +5,7 @@ import { IconLoader2, IconPencil } from '@/components/ui/icons';
 import type { ProviderRecentUsageMap } from '@/components/providers/utils';
 import { useNotificationStore } from '@/stores';
 import { PROVIDER_DESCRIPTORS } from '../descriptors';
+import { isOpenAICompatibleProviderBrand } from '../openRouter';
 import { isMultiProtocolSponsorBrand } from '../sponsorDefinitions';
 import type { ProviderBrand, ProviderEntryFormInput, ProviderResource } from '../types';
 import type { UseProviderWorkbenchResult } from '../useProviderWorkbench';
@@ -239,18 +240,11 @@ export function ProviderSheet({
       }
       title={titleText}
       description={t('providersPage.table.description', {
-        route:
-          state.brand === 'openaiCompatibility'
-            ? '/ai-providers/openai'
-            : state.brand === 'apikeyFun'
-              ? '/ai-providers/apikeyfun'
-              : state.brand === 'fennoAI'
-                ? '/ai-providers/fennoai'
-                : state.brand === 'qiniuCloud'
-                  ? '/ai-providers/qiniu'
-                  : state.brand === 'kimi'
-                    ? '/ai-providers/kimi'
-                    : `/ai-providers/${state.brand}`,
+        route: isOpenAICompatibleProviderBrand(state.brand)
+          ? '/ai-providers/openai'
+          : state.brand === 'kimi'
+            ? '/ai-providers/kimi'
+            : `/ai-providers/${state.brand}`,
       })}
       footer={footer}
       closeDisabled={submitting}

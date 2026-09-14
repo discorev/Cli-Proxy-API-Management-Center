@@ -36,9 +36,28 @@ describe('promotion cleanup', () => {
     ).toBe(false);
 
     const ids = buildProviderGroups({}).map((group) => group.id);
-    for (const brand of ['apikeyFun', 'kimi', 'fennoAI', 'qiniuCloud']) {
-      expect(ids).toContain(brand);
+    expect(ids).toContain('kimi');
+    expect(ids).toContain('openrouter');
+    for (const brand of ['apikeyFun', 'fennoAI', 'qiniuCloud']) {
+      expect(ids).not.toContain(brand);
     }
+
+    const categoryList = read('src/features/providers/components/ProviderCategoryList.tsx');
+    expect(categoryList).not.toContain('QUICK_FILL');
+    expect(categoryList).not.toContain('categories.quickFill');
+  });
+
+  test('uses shared category and badge styles for Kimi', () => {
+    const categoryList = read('src/features/providers/components/ProviderCategoryList.tsx');
+    const categoryStyles = read(
+      'src/features/providers/components/ProviderCategoryList.module.scss'
+    );
+
+    expect(categoryList).not.toContain("group.id === 'kimi'");
+    expect(categoryList).toContain("active ? styles.active : ''");
+    expect(categoryList).toContain("total === 0 ? styles.badgeAmber : ''");
+    expect(categoryStyles).not.toContain('.itemKimi');
+    expect(categoryStyles).not.toContain('.badgeKimi');
   });
 
   test('contains no known sponsor or affiliate promotion in production files or docs', () => {
@@ -63,6 +82,13 @@ describe('promotion cleanup', () => {
       'assets/apimart-en.png',
       'assets/apimart-zh.png',
       'src/assets/icons/bestproxy.png',
+      'src/assets/icons/apikey-fun.png',
+      'src/assets/icons/fenno-ai.png',
+      'src/assets/icons/qiniu-cloud.png',
+      'src/features/providers/sponsor.ts',
+      'src/features/providers/fennoAI.ts',
+      'src/features/providers/qiniuCloud.ts',
+      'src/features/providers/sheets/forms/useSponsorUsageCheck.ts',
     ]) {
       expect(existsSync(join(root, path))).toBe(false);
     }
@@ -94,6 +120,7 @@ describe('promotion cleanup', () => {
         nav_meta: Record<string, string>;
         auth_login: Record<string, string>;
         providersPage: {
+          categories: Record<string, string>;
           providerNames: Record<string, string>;
           sponsor: Record<string, unknown>;
         };
@@ -118,8 +145,11 @@ describe('promotion cleanup', () => {
       ]) {
         expect(key in locale.providersPage.sponsor).toBe(false);
       }
-      for (const brand of ['apikeyFun', 'kimi', 'fennoAI', 'qiniuCloud']) {
-        expect(locale.providersPage.providerNames[brand]?.trim()).toBeTruthy();
+      expect('quickFill' in locale.providersPage.categories).toBe(false);
+      expect(locale.providersPage.providerNames.openrouter?.trim()).toBeTruthy();
+      expect(locale.providersPage.providerNames.kimi?.trim()).toBeTruthy();
+      for (const brand of ['apikeyFun', 'fennoAI', 'qiniuCloud']) {
+        expect(brand in locale.providersPage.providerNames).toBe(false);
       }
     }
   });
