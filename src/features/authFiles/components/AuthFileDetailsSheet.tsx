@@ -38,6 +38,7 @@ export type AuthFileDetailsSheetProps = {
   editor: PrefixProxyEditorState | null;
   updatedText: string;
   dirty: boolean;
+  displayNameFor: (name: string) => string;
   onClose: () => void;
   onCopyText: (text: string) => void | Promise<void>;
   onSave: () => void;
@@ -51,8 +52,17 @@ export type AuthFileDetailsSheetProps = {
 export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { disableControls, editor, updatedText, dirty, onClose, onCopyText, onSave, onChange } =
-    props;
+  const {
+    disableControls,
+    editor,
+    updatedText,
+    dirty,
+    displayNameFor,
+    onClose,
+    onCopyText,
+    onSave,
+    onChange,
+  } = props;
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
 
   const confirmClose = useCallback((): boolean | Promise<boolean> => {
@@ -124,7 +134,7 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
       size="md"
       closeDisabled={editor?.saving === true}
       eyebrow={t('auth_files.prefix_proxy_button')}
-      title={editor?.fileName ?? ''}
+      title={editor ? displayNameFor(editor.fileName) : ''}
       footer={
         <>
           <Button

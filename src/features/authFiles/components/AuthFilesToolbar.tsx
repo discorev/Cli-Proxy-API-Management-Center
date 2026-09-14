@@ -5,14 +5,8 @@ import { Select } from '@/components/ui/Select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { IconSearch, IconSlidersHorizontal, IconTrash2 } from '@/components/ui/icons';
-import {
-  MAX_CARD_PAGE_SIZE,
-  MIN_CARD_PAGE_SIZE,
-} from '@/features/authFiles/constants';
-import type {
-  AuthFilesSortMode,
-  AuthFilesStatusFilterMode,
-} from '@/features/authFiles/uiState';
+import { MAX_CARD_PAGE_SIZE, MIN_CARD_PAGE_SIZE } from '@/features/authFiles/constants';
+import type { AuthFilesSortMode, AuthFilesStatusFilterMode } from '@/features/authFiles/uiState';
 import styles from './AuthFilesToolbar.module.scss';
 
 export type AuthFilesToolbarProps = {
@@ -29,6 +23,8 @@ export type AuthFilesToolbarProps = {
   onPageSizeCommit: (rawValue: string) => void;
   compactMode: boolean;
   onCompactModeChange: (value: boolean) => void;
+  redactNames: boolean;
+  onShowNamesChange: (visible: boolean) => void;
   deleteLabel: string;
   deleteDisabled: boolean;
   deleteLoading: boolean;
@@ -54,6 +50,8 @@ export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
     onPageSizeCommit,
     compactMode,
     onCompactModeChange,
+    redactNames,
+    onShowNamesChange,
     deleteLabel,
     deleteDisabled,
     deleteLoading,
@@ -138,7 +136,7 @@ export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
           aria-expanded={displaySettingsOpen}
           aria-controls="auth-files-display-settings"
           title={t('auth_files.display_options_label')}
-        onClick={() => setDisplaySettingsOpen((open) => !open)}
+          onClick={() => setDisplaySettingsOpen((open) => !open)}
         >
           <IconSlidersHorizontal size={15} />
           <span>{t('auth_files.display_options_label')}</span>
@@ -171,6 +169,14 @@ export function AuthFilesToolbar(props: AuthFilesToolbarProps) {
                 checked={compactMode}
                 onChange={onCompactModeChange}
                 ariaLabel={t('auth_files.compact_mode_label')}
+              />
+            </div>
+            <div className={styles.popoverRow}>
+              <span>{t('auth_files.show_names')}</span>
+              <ToggleSwitch
+                checked={!redactNames}
+                onChange={onShowNamesChange}
+                ariaLabel={t('auth_files.show_names')}
               />
             </div>
           </div>

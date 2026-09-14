@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
+import { deriveAuthFileIdentity } from '@/features/authFiles/identity';
+import { redactIdentity } from '@/utils/quota/redact';
 
 // The quota host binds CSS-module classes at import time, which Bun cannot render.
 // Keep these source contracts small; browser checks cover the actual card interactions.
@@ -18,13 +20,30 @@ describe('auth file card presentation contract', () => {
     expect(source).not.toContain('getAuthFileIcon');
     expect(source).not.toContain('stateBadge');
     expect(source).toContain('<h3');
-    expect(source).toContain('{identity.primary}');
-    expect(source).toContain('{identity.secondary}');
+    expect(source).toContain('{displayPrimary}');
+    expect(source).toContain('{displaySecondary}');
+  });
+
+  test('shows transformed primary and secondary identities, including their titles', () => {
+    const identity = deriveAuthFileIdentity({
+      name: 'claude-ollie.hayman@advt-group.com.json',
+      email: 'ollie.hayman@advt-group.com',
+    });
+
+    expect(redactIdentity(identity.primary)).toBe('o•••@a•••.com');
+    expect(redactIdentity(identity.secondary ?? '')).toBe('claude-o•••@a•••.com');
+    expect(source).toContain('const displayPrimary = displayNameFor(identity.primary)');
+    expect(source).toContain('displayNameFor(identity.secondary)');
+    expect(source).toContain('const displayFullName = displayNameFor(identity.fullName)');
+    expect(source).toContain('title={displayPrimary}');
+    expect(source).toContain('title={displayFullName}');
+    expect(source).toContain('{displayPrimary}');
+    expect(source).toContain('{displaySecondary}');
   });
 
   test('prefixes the account with a theme-aware legacy provider pill', () => {
     const heading = source.split('<h3')[1].split('</h3>')[0];
-    expect(heading.indexOf('{typeLabel}')).toBeLessThan(heading.indexOf('{identity.primary}'));
+    expect(heading.indexOf('{typeLabel}')).toBeLessThan(heading.indexOf('{displayPrimary}'));
     expect(heading).toContain('styles.providerBadge');
     expect(heading).toContain('backgroundColor: typeColor.bg');
     expect(heading).toContain('color: typeColor.text');

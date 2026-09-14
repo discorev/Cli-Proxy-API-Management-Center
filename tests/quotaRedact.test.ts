@@ -22,6 +22,11 @@ describe('redactIdentity', () => {
     expect(redactIdentity('abc')).toBe('a•••');
   });
 
+  test('redacts plain Auth Files email and project identities', () => {
+    expect(redactIdentity('ollie.hayman@advt-group.com')).toBe('o•••@a•••.com');
+    expect(redactIdentity('my-gcp-project-123')).toBe('my-g•••');
+  });
+
   test('redacts both halves of a Devin display name', () => {
     expect(redactIdentity('devin-main.json · theo@lambda.dev')).toBe(
       'devin-m•••.json · t•••@l•••.dev'

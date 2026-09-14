@@ -10,6 +10,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { copyToClipboard } from '@/utils/clipboard';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
+import { identityTransform } from '@/utils/quota/redact';
+import { readPersistedRedactNames, writePersistedRedactNames } from '@/utils/redactNamesPreference';
 import {
   QUOTA_PROVIDER_TYPES,
   clampCardPageSize,
@@ -87,6 +89,9 @@ export function AuthFilesPage() {
   const [filter, setFilter] = useState<'all' | string>('all');
   const [statusFilterMode, setStatusFilterMode] = useState<AuthFilesStatusFilterMode>('all');
   const [compactMode, setCompactMode] = useState(false);
+  const [redactNames, setRedactNames] = useState<boolean>(
+    () => readPersistedRedactNames() ?? false
+  );
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [pageSizeByMode, setPageSizeByMode] = useState({
@@ -191,6 +196,13 @@ export function AuthFilesPage() {
   const problemOnly = statusFilterMode === 'problem';
   const disabledOnly = statusFilterMode === 'disabled';
   const enabledOnly = statusFilterMode === 'enabled';
+  const displayNameFor = useMemo(() => identityTransform(redactNames), [redactNames]);
+
+  const handleShowNamesChange = useCallback((visible: boolean) => {
+    const next = !visible;
+    setRedactNames(next);
+    writePersistedRedactNames(next);
+  }, []);
 
   /* ---------- uiState 水合与持久化（localStorage key/形状与旧版完全一致） ---------- */
 
@@ -624,6 +636,8 @@ export function AuthFilesPage() {
           onPageSizeCommit={commitPageSizeInput}
           compactMode={compactMode}
           onCompactModeChange={setCompactMode}
+          redactNames={redactNames}
+          onShowNamesChange={handleShowNamesChange}
           deleteLabel={deleteAllButtonLabel}
           deleteDisabled={disableControls || loading || deletingAll || files.length === 0}
           deleteLoading={deletingAll}
@@ -698,6 +712,7 @@ export function AuthFilesPage() {
                 quotaFilterType={activeQuotaFilter}
                 statusBarCache={statusBarCache}
                 entranceDelayMs={cardEntranceDelay(index)}
+                displayNameFor={displayNameFor}
                 onShowModels={showModels}
                 onDownload={handleDownload}
                 onManualRefresh={handleManualRefresh}
@@ -786,6 +801,7 @@ export function AuthFilesPage() {
         editor={prefixProxyEditor}
         updatedText={prefixProxyUpdatedText}
         dirty={prefixProxyDirty}
+        displayNameFor={displayNameFor}
         onClose={closePrefixProxyEditor}
         onCopyText={copyTextWithNotification}
         onSave={handlePrefixProxySave}

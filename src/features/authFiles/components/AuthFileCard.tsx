@@ -48,6 +48,7 @@ export type AuthFileCardProps = {
   statusBarCache: Map<string, AuthFileStatusBarData>;
   /** 首屏一次性级联入场的延迟；null/undefined 表示不做入场动画。 */
   entranceDelayMs?: number | null;
+  displayNameFor: (name: string) => string;
   onShowModels: (file: AuthFileItem) => void;
   onDownload: (name: string) => void;
   onManualRefresh: (file: AuthFileItem) => void;
@@ -71,6 +72,7 @@ export function AuthFileCard(props: AuthFileCardProps) {
     quotaFilterType,
     statusBarCache,
     entranceDelayMs,
+    displayNameFor,
     onShowModels,
     onDownload,
     onManualRefresh,
@@ -107,6 +109,9 @@ export function AuthFileCard(props: AuthFileCardProps) {
   const noteValue = typeof file.note === 'string' ? file.note.trim() : '';
   // 主行显示账号（email/项目 ID），文件名降为满卡宽的 mono 副行
   const identity = deriveAuthFileIdentity(file);
+  const displayPrimary = displayNameFor(identity.primary);
+  const displaySecondary = identity.secondary ? displayNameFor(identity.secondary) : null;
+  const displayFullName = displayNameFor(identity.fullName);
 
   // 挂载时捕获一次入场延迟：父级随后传 null 也不会中断已开始的动画
   const [mountEntranceDelayMs] = useState<number | null>(entranceDelayMs ?? null);
@@ -148,9 +153,9 @@ export function AuthFileCard(props: AuthFileCardProps) {
           </span>
           <span
             className={`${styles.account} ${identity.kind === 'fileName' ? styles.accountMono : ''}`}
-            title={identity.primary}
+            title={displayPrimary}
           >
-            {identity.primary}
+            {displayPrimary}
           </span>
         </h3>
         {isRuntimeOnly && (
@@ -158,9 +163,9 @@ export function AuthFileCard(props: AuthFileCardProps) {
         )}
       </header>
 
-      {identity.secondary && (
-        <p className={styles.fileName} title={identity.fullName}>
-          {identity.secondary}
+      {displaySecondary && (
+        <p className={styles.fileName} title={displayFullName}>
+          {displaySecondary}
         </p>
       )}
 

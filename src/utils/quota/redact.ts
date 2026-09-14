@@ -1,9 +1,9 @@
 /**
  * Screen-share redaction for credential identities.
  *
- * The quota page shows filenames and Devin account emails in full. That is the
- * right default at a desk and the wrong one on a call, so the header toggle
- * routes every identity string on the page through this one helper.
+ * Credential pages show filenames and account identities in full. That is the
+ * right default at a desk and the wrong one on a call, so their shared toggle
+ * routes every displayed identity string through this one helper.
  *
  * The rule keeps the parts that identify a *kind* of credential — the provider
  * prefix, hex id segments, the file extension and the TLD — and masks the

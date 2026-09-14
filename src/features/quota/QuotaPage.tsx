@@ -25,6 +25,7 @@ import { useAuthStore, useQuotaStore, useThemeStore } from '@/stores';
 import type { AuthFileItem, DevinQuotaState, ResolvedTheme } from '@/types';
 import { isDevinFile } from '@/utils/quota';
 import { identityTransform } from '@/utils/quota/redact';
+import { readPersistedRedactNames, writePersistedRedactNames } from '@/utils/redactNamesPreference';
 import { getQuotaCacheKey, getQuotaDisplayName } from '@/utils/quota/identity';
 import { ProviderTabs } from '@/features/authFiles/components/ProviderTabs';
 import { QuotaHeader } from './components/QuotaHeader';
@@ -55,12 +56,7 @@ import { getDevinQuotaSnapshotState } from './providers/devin/data';
 import { useDevinQuotaAutoLoad } from './providers/devin/useDevinQuotaAutoLoad';
 import { useQuotaActions } from './hooks/useQuotaActions';
 import { useQuotaBatchLoader } from './hooks/useQuotaBatchLoader';
-import {
-  readPersistedQuotaRedactNames,
-  readQuotaUiState,
-  writePersistedQuotaRedactNames,
-  writeQuotaUiState,
-} from './uiState';
+import { readQuotaUiState, writeQuotaUiState } from './uiState';
 import styles from './QuotaPage.module.scss';
 
 const TAB_IDS: string[] = ['all', ...QUOTA_TAB_ORDER];
@@ -80,7 +76,7 @@ export function QuotaPage() {
   );
   // 跨会话持久化：屏幕共享前藏起名字，重启后必须还藏着。
   const [redactNames, setRedactNames] = useState<boolean>(
-    () => readPersistedQuotaRedactNames() ?? false
+    () => readPersistedRedactNames() ?? false
   );
   // 页头 + tabs 的入场级联（标题 → meta → 动作 → tabs，级差 70ms）
   const revealRef = useRevealGroup<HTMLDivElement>();
@@ -179,7 +175,7 @@ export function QuotaPage() {
 
   const handleToggleRedactNames = useCallback((next: boolean) => {
     setRedactNames(next);
-    writePersistedQuotaRedactNames(next);
+    writePersistedRedactNames(next);
   }, []);
 
   /* ---------- 归类 / 过滤 / 排序 ---------- */

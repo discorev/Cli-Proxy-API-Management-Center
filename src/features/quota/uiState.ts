@@ -54,29 +54,3 @@ export const writeQuotaUiState = (state: QuotaUiState) => {
     // ignore
   }
 };
-
-/* ---------- 名称遮蔽（跨会话持久化） ----------
- * tab/sort 是会话级偏好，这个不是：屏幕共享前把名字藏起来，重启后必须还藏着。
- * 与凭证库紧凑模式同一配方（localStorage 独立键）。 */
-
-const QUOTA_REDACT_NAMES_KEY = 'quotaPage.redactNames';
-
-export const readPersistedQuotaRedactNames = (): boolean | null => {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(QUOTA_REDACT_NAMES_KEY);
-    if (raw === null) return null;
-    return JSON.parse(raw) === true;
-  } catch {
-    return null;
-  }
-};
-
-export const writePersistedQuotaRedactNames = (redactNames: boolean) => {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.setItem(QUOTA_REDACT_NAMES_KEY, JSON.stringify(redactNames));
-  } catch {
-    // ignore
-  }
-};
