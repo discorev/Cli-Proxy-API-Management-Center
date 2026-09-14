@@ -58,12 +58,14 @@ function ResetText({ display, soon }: { display: ResetDisplay | null; soon: bool
   if (!display) return null;
   return (
     <span className={styles.reset}>
-      <span className={styles.resetAbsolute}>{display.absolute}</span>
       {display.relative && (
-        <span className={soon ? `${styles.resetRelative} ${styles.resetSoon}` : styles.resetRelative}>
+        <span
+          className={soon ? `${styles.resetRelative} ${styles.resetSoon}` : styles.resetRelative}
+        >
           {display.relative}
         </span>
       )}
+      <span className={styles.resetAbsolute}>{display.absolute}</span>
     </span>
   );
 }
@@ -151,12 +153,7 @@ export function QuotaRow(props: QuotaRowProps) {
           <div className={styles.windows}>
             {model.windows.map((window) => {
               const soon = window.id === urgentRowId;
-              const display = buildResetDisplay(
-                window.resetLabel,
-                window.resetAtMs,
-                now,
-                locale
-              );
+              const display = buildResetDisplay(window.resetLabel, window.resetAtMs, now, locale);
               return (
                 <div
                   key={window.id}
@@ -180,20 +177,22 @@ export function QuotaRow(props: QuotaRowProps) {
             {model.resetCredits && (
               <div className={styles.window}>
                 <div className={styles.windowHead}>
-                  <span className={styles.windowLabel}>{t('codex_quota.reset_credits_label')}</span>
-                  <span className={styles.windowPercent}>{model.resetCredits.available}</span>
+                  <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
+                    {t('codex_quota.reset_credits_label')}
+                  </span>
                 </div>
-                <span className={styles.creditsNote}>
-                  {t('quota_management.manual_resets_available', {
-                    count: model.resetCredits.available,
-                  })}
+                <span className={styles.creditsValue}>
+                  <span className={styles.creditsCount}>{model.resetCredits.available}</span>
+                  {t('quota_management.manual_resets_unit')}
                 </span>
                 <ResetText display={creditDisplay} soon={nextCredit?.id === urgentRowId} />
               </div>
             )}
           </div>
         ) : (
-          <div className={styles.message}>{model?.message ?? t('quota_management.row_not_loaded')}</div>
+          <div className={styles.message}>
+            {model?.message ?? t('quota_management.row_not_loaded')}
+          </div>
         )}
       </div>
 
@@ -212,9 +211,7 @@ export function QuotaRow(props: QuotaRowProps) {
         )}
         <button
           type="button"
-          className={
-            status === 'idle' ? `${styles.action} ${styles.actionPrimary}` : styles.action
-          }
+          className={status === 'idle' ? `${styles.action} ${styles.actionPrimary}` : styles.action}
           onClick={onRefresh}
           disabled={isQuotaRefreshDisabled(canRefresh, loading, resetting)}
           title={t('auth_files.quota_refresh_hint')}

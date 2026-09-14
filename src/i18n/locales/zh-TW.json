@@ -1283,7 +1283,7 @@
     "summary_show_more": "展開",
     "summary_hide_more": "收合",
     "row_not_loaded": "未載入",
-    "manual_resets_available": "{{count}} 次可用",
+    "manual_resets_unit": "次可用",
     "empty_title": "暫無可查配額的憑證",
     "empty_desc": "接入 Antigravity、Claude、Codex、xAI 或 Kimi 憑證後即可在此查看配額。",
     "windows_title": "配額視窗",

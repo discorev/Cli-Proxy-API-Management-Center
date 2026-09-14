@@ -9,7 +9,7 @@
 
 .row {
   display: grid;
-  grid-template-columns: minmax(170px, 1.2fr) minmax(0, 3fr) auto;
+  grid-template-columns: minmax(230px, 1.4fr) minmax(0, 3fr) auto;
   align-items: center;
   gap: 8px 16px;
   min-height: 58px;
@@ -164,17 +164,17 @@
   line-height: 1.4;
 }
 
-.resetAbsolute {
-  color: var(--text-quaternary);
+.resetRelative {
+  color: var(--text-secondary);
+  font-weight: 600;
 }
 
-.resetRelative {
-  color: var(--text-tertiary);
+.resetAbsolute {
+  color: var(--text-quaternary);
 
-  &::before {
+  .resetRelative + &::before {
     content: '·';
     margin: 0 4px;
-    color: var(--text-quaternary);
   }
 }
 
@@ -183,10 +183,27 @@
   font-weight: 600;
 }
 
-.creditsNote {
+/* 手动重置列：没有水位条，标签与数值要自己撑起分量 */
+.creditsLabel {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.creditsValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.creditsCount {
   font-family: $font-mono;
-  font-size: 10.5px;
-  color: var(--text-tertiary);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
 }
 
 /* ---------- 未加载 / 加载中 / 失败 ---------- */

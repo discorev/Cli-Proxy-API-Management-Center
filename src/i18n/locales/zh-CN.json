@@ -1257,7 +1257,7 @@
     "summary_show_more": "展开",
     "summary_hide_more": "收起",
     "row_not_loaded": "未加载",
-    "manual_resets_available": "{{count}} 次可用",
+    "manual_resets_unit": "次可用",
     "empty_title": "暂无可查额度的凭证",
     "empty_desc": "接入 Antigravity、Claude、Codex、xAI 或 Kimi 凭证后即可在此查看额度。",
     "windows_title": "配额窗口",

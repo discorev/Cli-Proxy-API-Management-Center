@@ -1262,7 +1262,7 @@
     "summary_show_more": "Показать ещё",
     "summary_hide_more": "Скрыть",
     "row_not_loaded": "Не загружено",
-    "manual_resets_available": "{{count}} доступно",
+    "manual_resets_unit": "доступно",
     "empty_title": "Нет учётных данных с квотами",
     "empty_desc": "Подключите учётные данные Antigravity, Claude, Codex, xAI или Kimi, чтобы отслеживать квоту здесь.",
     "windows_title": "Окна квот",

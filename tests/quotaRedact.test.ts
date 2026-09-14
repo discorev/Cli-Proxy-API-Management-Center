@@ -10,6 +10,18 @@ describe('redactIdentity', () => {
     expect(redactIdentity('kimi-account.json')).toBe('kimi-a•••.json');
   });
 
+  test('masks dotted account names and every domain label but the TLD', () => {
+    expect(redactIdentity('claude-f95094e6-ollie.hayman@advt-group.com.json')).toBe(
+      'claude-f95094e6-o•••@a•••.com.json'
+    );
+    expect(redactIdentity('codex-7fe021f6-ollie.hayman@me.com-pro.json')).toBe(
+      'codex-7fe021f6-o•••@m•••.com-pro.json'
+    );
+    expect(redactIdentity('claude-ollie@ollies.email.json')).toBe('claude-o•••@o•••.email.json');
+    expect(redactIdentity('theo@lambda.dev')).toBe('t•••@l•••.dev');
+    expect(redactIdentity('abc')).toBe('a•••');
+  });
+
   test('redacts both halves of a Devin display name', () => {
     expect(redactIdentity('devin-main.json · theo@lambda.dev')).toBe(
       'devin-m•••.json · t•••@l•••.dev'

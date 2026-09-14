@@ -6,13 +6,14 @@
  * routes every identity string on the page through this one helper.
  *
  * The rule keeps the parts that identify a *kind* of credential — the provider
- * prefix, the dashed id segment, the file extension and the domain tail — and
- * masks only the word that names the person or account. Enough survives to tell
+ * prefix, hex id segments, the file extension and the TLD — and masks the
+ * words that name the person, account or organisation, dots included. Enough survives to tell
  * two rows apart; not enough to read an address off a stream.
  *
- *   claude-theo@lambda.dev.json          → claude-t•••@l•••.dev.json
- *   codex-4630970a-abc@one.dev-pro.json  → codex-4630970a-a•••@o•••.dev-pro.json
- *   kimi-account.json                    → kimi-a•••.json
+ *   claude-theo@lambda.dev.json                 → claude-t•••@l•••.dev.json
+ *   codex-4630970a-abc@one.dev-pro.json         → codex-4630970a-a•••@o•••.dev-pro.json
+ *   claude-f95094e6-ollie.hayman@advt-group.com.json → claude-f95094e6-o•••@a•••.com.json
+ *   kimi-account.json                           → kimi-a•••.json
  *
  * Pure and React-free.
  */
@@ -22,28 +23,49 @@ const MASK = '•••';
 /** Devin display names are `file · identity`; both halves are redacted. */
 const DISPLAY_SEPARATOR = ' · ';
 
+/** Auth-file extension, kept verbatim so a redacted name still reads as a file. */
+const FILE_EXTENSION = /\.json$/i;
+
+/** Opaque id segments (`4630970a`, `f95094e6`) identify a credential, not a person. */
+const HEX_ID = /^[0-9a-f]{6,}$/i;
+
+/** First character plus the mask; one-character words have nothing left to hide. */
+const maskWord = (word: string): string => (word.length <= 1 ? word : `${word[0]}${MASK}`);
+
 /**
- * Mask one dotless word, keeping its structural prefix.
- *
- * The prefix is everything up to and including the first character after the
- * last dash — `codex-4630970a-abc` keeps `codex-4630970a-a`. A word with no
- * dash keeps only its first character. Words already at or below that length
- * carry no secret worth hiding and are returned untouched, so the mask never
- * makes a name *longer* than the original.
+ * The account half: keep the provider prefix and any hex ids that follow it,
+ * mask everything after that as one word — `ollie.hayman` is a person, so the
+ * dot inside it is masked too.
  */
-function maskWord(word: string): string {
-  if (word.length === 0) return word;
-  const lastDash = word.lastIndexOf('-');
-  const keep = lastDash === -1 ? 1 : lastDash + 2;
-  if (word.length <= keep) return word;
-  return `${word.slice(0, keep)}${MASK}`;
+function redactLocal(local: string): string {
+  const [head, ...rest] = local.split('-');
+  if (rest.length === 0) return maskWord(head);
+  const kept = [head];
+  let index = 0;
+  while (index < rest.length && HEX_ID.test(rest[index])) {
+    kept.push(rest[index]);
+    index += 1;
+  }
+  const remainder = rest.slice(index).join('-');
+  if (remainder) kept.push(maskWord(remainder));
+  return kept.join('-');
 }
 
-/** Mask the leading word of one `@`-part, preserving its dotted tail. */
-function redactPart(part: string): string {
-  const dot = part.indexOf('.');
-  if (dot === -1) return maskWord(part);
-  return `${maskWord(part.slice(0, dot))}${part.slice(dot)}`;
+/** The domain half: keep only the TLD, mask every other label. */
+function redactDomain(domain: string): string {
+  const labels = domain.split('.');
+  return labels.map((label, i) => (i === labels.length - 1 ? label : maskWord(label))).join('.');
+}
+
+function redactSegment(segment: string): string {
+  const extension = FILE_EXTENSION.exec(segment)?.[0] ?? '';
+  const base = extension ? segment.slice(0, -extension.length) : segment;
+  const at = base.indexOf('@');
+  const redacted =
+    at === -1
+      ? redactLocal(base)
+      : `${redactLocal(base.slice(0, at))}@${redactDomain(base.slice(at + 1))}`;
+  return `${redacted}${extension}`;
 }
 
 /**
@@ -52,10 +74,7 @@ function redactPart(part: string): string {
  */
 export function redactIdentity(name: string): string {
   if (!name) return name;
-  return name
-    .split(DISPLAY_SEPARATOR)
-    .map((segment) => segment.split('@').map(redactPart).join('@'))
-    .join(DISPLAY_SEPARATOR);
+  return name.split(DISPLAY_SEPARATOR).map(redactSegment).join(DISPLAY_SEPARATOR);
 }
 
 /** The identity transform for a given redaction preference. */
