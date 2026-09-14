@@ -1,0 +1,65 @@
+@use '../../../styles/mixins' as *;
+
+/* 分区标题：图标 + 提供商名 + mono 计数。标题不抢行的注意力 ——
+ * 它是分组记号，数据在下面的行里。 */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px 6px;
+  min-width: 0;
+}
+
+.iconWrap {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--bg-tertiary) 60%, transparent);
+}
+
+.icon {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  display: block;
+}
+
+.iconFallback {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  @include text-ellipsis;
+}
+
+.count {
+  font-family: $font-mono;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-quaternary);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}

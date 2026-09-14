@@ -1,0 +1,392 @@
+@use '../../../styles/mixins' as *;
+
+/* ============================================================
+ * 额度行 — 一凭证一行：身份（mono）| 各窗口水位 | 右对齐动作。
+ *
+ * 与卡片同语汇（mono 遥测 / tabular-nums / 三档水位色），但外壳从 14px 圆角
+ * 纸面降为一道分隔线：十五行叠在一起时，十五个边框比数据更抢眼。
+ * ============================================================ */
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(170px, 1.2fr) minmax(0, 3fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  min-height: 58px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  border-bottom-color: color-mix(in srgb, var(--border-color) 70%, transparent);
+  transition:
+    transform var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    box-shadow var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover {
+    transform: translateY(-1px);
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+    box-shadow: 0 10px 22px -16px rgb(0 0 0 / 0.22);
+  }
+}
+
+/* 首屏一次性级联入场（切 tab / 刷新不重播 —— 延迟在挂载时捕获） */
+.rowEnter {
+  animation: quota-row-in 0.4s var(--ease-out-strong, ease-out) both;
+  animation-delay: var(--row-delay, 0s);
+}
+
+@keyframes quota-row-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+}
+
+/* ---------- 身份列 ---------- */
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.name {
+  font-family: $font-mono;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+  @include text-ellipsis;
+}
+
+.plan {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+  @include text-ellipsis;
+}
+
+.planDot {
+  color: var(--text-quaternary);
+  user-select: none;
+}
+
+/* ---------- 窗口列 ---------- */
+
+.body {
+  min-width: 0;
+}
+
+.windows {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 6px 18px;
+  min-width: 0;
+}
+
+.window {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* 最后一小时内恢复的窗口：左侧一道警示记号，不改数字颜色 */
+.windowSoon {
+  padding-left: 7px;
+  border-left: 2px solid var(--warning-text);
+}
+
+.windowHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.windowLabel {
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  @include text-ellipsis;
+}
+
+.windowPercent {
+  flex-shrink: 0;
+  font-family: $font-mono;
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.meter {
+  height: 4px;
+  border-radius: $radius-full;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  overflow: hidden;
+}
+
+.meterFill {
+  height: 100%;
+  border-radius: $radius-full;
+  transition: width 360ms var(--ease-out-strong, ease);
+}
+
+.meterFillHigh {
+  background: var(--viz-success);
+}
+
+.meterFillMedium {
+  background: var(--quota-medium-color);
+}
+
+.meterFillLow {
+  background: var(--viz-failure);
+}
+
+.reset {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-family: $font-mono;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.resetAbsolute {
+  color: var(--text-quaternary);
+}
+
+.resetRelative {
+  color: var(--text-tertiary);
+
+  &::before {
+    content: '·';
+    margin: 0 4px;
+    color: var(--text-quaternary);
+  }
+}
+
+.resetSoon {
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.creditsNote {
+  font-family: $font-mono;
+  font-size: 10.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- 未加载 / 加载中 / 失败 ---------- */
+
+.idle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  border: 0;
+  background: none;
+  padding: 0;
+  font-family: $font-mono;
+  font-size: 11.5px;
+  color: var(--text-quaternary);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  transition: color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:disabled {
+    cursor: not-allowed;
+    text-decoration: none;
+    opacity: 0.6;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .idle:hover:not(:disabled) {
+    color: var(--text-secondary);
+  }
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 320px;
+}
+
+.skeletonTrack {
+  display: block;
+  width: 100%;
+  height: 4px;
+  border-radius: $radius-full;
+  background-color: color-mix(in srgb, var(--text-primary) 8%, transparent);
+  background-image: linear-gradient(
+    90deg,
+    transparent 20%,
+    color-mix(in srgb, var(--text-primary) 6%, transparent) 50%,
+    transparent 80%
+  );
+  background-repeat: no-repeat;
+  background-size: 220% 100%;
+  animation: quota-row-sweep 1.2s linear infinite;
+
+  &:last-child {
+    width: 62%;
+  }
+}
+
+@keyframes quota-row-sweep {
+  from {
+    background-position: -110% 0;
+  }
+  to {
+    background-position: 210% 0;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.errorStrip {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--viz-failure);
+  background: color-mix(in srgb, var(--viz-failure) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--viz-failure) 32%, transparent);
+  border-radius: 8px;
+  padding: 6px 9px;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  font-family: $font-mono;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+/* ---------- 动作 ---------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  border-radius: $radius-full;
+  background: none;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    transform var(--dur-press, 160ms) var(--ease-out-strong, ease-out),
+    border-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    background-color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out),
+    color var(--dur-hover, 200ms) var(--ease-out-strong, ease-out);
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+  }
+}
+
+/* 未加载时刷新是这一行唯一要做的事 —— 描边显色，其余状态保持安静 */
+.actionPrimary {
+  border-color: color-mix(in srgb, var(--primary-color) 42%, var(--border-color));
+  color: var(--text-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .action:hover:not(:disabled) {
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--bg-tertiary) 55%, transparent);
+    color: var(--text-primary);
+  }
+}
+
+.spinning {
+  animation: quota-row-spin 0.8s linear infinite;
+}
+
+@keyframes quota-row-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@include mobile {
+  .row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    padding: 11px 10px;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row,
+  .action,
+  .idle,
+  .meterFill {
+    transition: none;
+  }
+
+  .action:active:not(:disabled) {
+    transform: none;
+  }
+
+  .rowEnter,
+  .skeletonTrack,
+  .spinning {
+    animation: none;
+  }
+}

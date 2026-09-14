@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Quota page: provider strip, rows, redaction</title><style>
+:root{--paper:#faf9f5;--ink:#302d28;--muted:#716b63;--line:#ded9d0;--clay:#d97757;--olive:#788c5d;--white:#fff}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 system-ui,sans-serif}main{max-width:980px;margin:auto;padding:56px 24px}header{border-top:6px solid var(--clay);padding-top:22px}h1,h2,h3{font-family:Georgia,serif;font-weight:400;line-height:1.15}h1{font-size:clamp(36px,6vw,58px);max-width:760px;margin:16px 0}h2{font-size:28px}h3{font-size:22px;margin:0 0 10px}.label,code,.chip,.mono{font-family:ui-monospace,monospace}.label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0}.chip{font-size:12px;border:1px solid var(--line);padding:4px 10px;border-radius:20px}.card{background:var(--white);border:1px solid var(--line);padding:22px 24px;margin:16px 0;border-radius:8px}.pick{border-left:4px solid var(--olive)}p{margin:10px 0}.muted{color:var(--muted)}code{font-size:13px;overflow-wrap:anywhere;background:#f3f0e9;padding:1px 5px;border-radius:4px}pre{background:#f3f0e9;padding:14px 16px;border-radius:6px;font-size:13px;line-height:1.5;overflow:auto}pre code{background:none;padding:0}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}.keep{color:#526637}.remove{color:#95503a}summary{cursor:pointer;font-weight:600}summary:focus-visible{outline:2px solid var(--clay);outline-offset:4px}.steps{display:flex;gap:12px}.steps>div{flex:1;padding:16px;background:var(--white);border:1px solid var(--line);border-radius:8px}section{margin-top:40px}footer{margin-top:40px;border-top:1px solid var(--line);padding-top:20px}ul{padding-left:20px;margin:8px 0}li{margin:4px 0}
+/* wireframe */
+.wire{background:#1c1b19;color:#e8e4dc;border-radius:8px;padding:18px;font-size:12.5px;margin:14px 0}.wire .strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.wire .pcard{border:1px solid #3a3733;border-radius:6px;padding:10px}.wire .big{font-size:22px;font-weight:600}.wire .seg{display:flex;gap:3px;margin:6px 0}.wire .seg i{flex:1;height:4px;border-radius:2px;background:#10b981}.wire .seg i.mid{background:#e0aa14}.wire .seg i.off{background:#3a3733}.wire .dim{color:#8f8a82}.wire .row{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr auto;gap:14px;padding:10px 0;border-top:1px solid #2c2a27;align-items:center}.wire .bar{height:4px;border-radius:2px;background:#10b981;margin:4px 0}.wire .bar.mid{background:#e0aa14}.wire .sect{margin:10px 0 4px;font-weight:600}.wire .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.wire .tog{border:1px solid #3a3733;border-radius:20px;padding:3px 10px}
+@media(max-width:680px){.grid2{grid-template-columns:1fr}.steps{flex-direction:column}main{padding:28px 18px}.wire .strip{grid-template-columns:1fr 1fr}.wire .row{grid-template-columns:1fr 1fr}}
+</style></head><body><main>
+<header><div class="label">Quota Management redesign</div><h1>Provider strip on top, one line per credential below, names you can hide.</h1><p>Replace the card grid on <code>#/quota</code> with the layout from Theo's screenshot: a summary card per provider, then provider sections with a compact row per auth file. Add a header toggle that redacts account names for screen-sharing.</p>
+<div class="chips"><span class="chip">Effort: medium, ~2 sessions</span><span class="chip">Files: quota feature only + 4 locales + tests</span><span class="chip">Risk: low, no data/store changes</span><span class="chip">Auth Files page untouched</span></div></header>
+
+<div class="wire">
+<div class="top"><span>Quota Management <span class="dim">· 15 credentials · 12 loaded</span></span><span><span class="tog">● Show names</span> &nbsp; <span class="tog">Refresh all</span></span></div>
+<div class="strip">
+<div class="pcard">Claude <span class="dim">5 credentials</span><div class="dim">7-day limit</div><div class="big">436% <span class="dim" style="font-size:12px">of 500%</span></div><div class="seg"><i></i><i class="mid"></i><i></i><i></i><i></i></div><div class="dim">in 1 day · 09/08, 21:59</div></div>
+<div class="pcard">Codex <span class="dim">4 credentials</span><div class="dim">Weekly limit</div><div class="big">387% <span class="dim" style="font-size:12px">of 400%</span></div><div class="seg"><i></i><i></i><i></i><i></i></div><div class="dim">in 6 days · 09/14, 18:23</div></div>
+<div class="pcard">xAI <span class="dim">1 credential</span><div class="dim">Weekly limit</div><div class="big">-- <span class="dim" style="font-size:12px">of 100%</span></div><div class="seg"><i class="off"></i></div><div class="dim">not loaded</div></div>
+<div class="pcard">Kimi <span class="dim">1 credential</span><div class="dim">Weekly limit</div><div class="big">100% <span class="dim" style="font-size:12px">of 100%</span></div><div class="seg"><i></i></div><div class="dim">in 2 days · 09/10, 15:50</div></div>
+</div>
+<div class="sect">Claude <span class="dim">5</span></div>
+<div class="row"><div><span class="mono">claude-t•••@1•••.dev.json</span><br><span class="dim">Max</span></div><div><span class="dim">7-day Fable 5</span> 98%<div class="bar"></div><span class="dim">in 5 days · 09/13, 12:59</span></div><div><span class="dim">5-hour limit</span> 100%<div class="bar"></div><span class="dim">No reset pending</span></div><div><span class="dim">7-day limit</span> 99%<div class="bar"></div><span class="dim">in 5 days · 09/13, 12:59</span></div><div class="dim">↻ Refresh</div></div>
+<div class="row"><div><span class="mono">claude-t•••@p•••.gg.json</span><br><span class="dim">Max</span></div><div><span class="dim">7-day Fable 5</span> 40%<div class="bar mid"></div><span class="dim">in 1 day · 09/08, 21:59</span></div><div><span class="dim">5-hour limit</span> 93%<div class="bar"></div><span class="dim">in 4 minutes</span></div><div><span class="dim">7-day limit</span> 70%<div class="bar"></div><span class="dim">in 1 day</span></div><div class="dim">↻ Refresh</div></div>
+<div class="sect">Codex <span class="dim">4</span></div>
+<div class="row"><div><span class="mono">codex-4630970a-a•••@1•••.dev-pr…</span><br><span class="dim">Pro 5x · renews 08/29</span></div><div><span class="dim">Weekly limit</span> 88%<div class="bar"></div><span class="dim">in 6 days · 09/14, 18:24</span></div><div><span class="dim">Manual resets</span> 3 available<br><span class="dim">Reset 1 · in 12 days</span></div><div></div><div class="dim">Reset · ↻ Refresh</div></div>
+</div>
+
+<section><div class="label">A / judgment calls</div>
+
+<article class="card pick"><h3>1 · One row model for all six providers</h3><p>Today each provider has its own body component rendering its own state shape. Rows and summary cards both need the same thing: a flat list of windows. Add a pure function that normalises each provider state into one shape, and build both new views on it.</p>
+<pre><code>type QuotaRowModel = {
+  plan: string | null;              // "Max", "Pro 5x", tier name
+  planNote: string | null;          // "renews 08/29, 17:19"
+  windows: { id; label; remainingPercent: number|null; resetAtMs; resetLabel; periodHours }[];
+  resetCredits?: { available: number; next: {...}[] }   // Codex only
+};
+toQuotaRowModel(provider, state, t) => QuotaRowModel</code></pre>
+<p class="muted">Lives next to <code>resetSchedule.ts</code>, React-free, unit-tested. The existing provider bodies stay as they are for the Auth Files compact card, so <code>bindQuotaClasses</code> and both skins are untouched.</p>
+<details><summary>Alternative: port the six bodies to a horizontal skin</summary><p>Faster to start, but the summary cards would still need aggregate logic reading six shapes, and the row layout per provider would drift. Not recommended.</p></details></article>
+
+<article class="card pick"><h3>2 · Summary card headline = sum of remaining across credentials</h3><p>Match the screenshot: pick the provider's longest window (7-day / weekly / monthly), sum remaining percent over loaded credentials, denominator is <code>credentials × 100%</code>. One bar segment per credential, coloured with the existing meter thresholds; unloaded credentials render a grey segment and the numerator shows <code>--</code> when nothing is loaded. Footer is the soonest reset among loaded credentials, using <code>resetSchedule.ts</code> exclusions.</p>
+<p>Claude gets a second line for the model-specific 7-day windows (Fable 5 etc.) behind a Show/Hide link, as in the screenshot. Other providers with several long windows (Antigravity groups) show the first.</p>
+<details><summary>Alternative: show an average instead of a sum</summary><p>"87% avg remaining" reads more naturally than "436% of 500%", but loses the at-a-glance headroom count. Say the word and I'll switch.</p></details></article>
+
+<article class="card pick"><h3>3 · Redaction rule and persistence</h3><p>Header toggle (existing <code>ToggleSwitch</code>) next to Refresh all. When on, every identity string on the page goes through one helper:</p>
+<pre><code>redactIdentity("claude-theo@lambda.dev.json")  // "claude-t•••@l•••.dev.json"
+redactIdentity("codex-4630970a-abc@one.dev-pro.json") // "codex-4630970a-a•••@o•••.dev-pro.json"
+redactIdentity("kimi-account.json") // "kimi-a•••.json"</code></pre>
+<p>Rule: split on <code>@</code>; in each part, keep everything up to and including the first char after the last <code>-</code> (or first char if no dash), mask the rest of that word with <code>•••</code>, keep the TLD/extension tail. Applies to file names, Devin emails, timeline lane labels and row tooltips. Default is <strong>visible</strong>; the choice persists in <strong>localStorage</strong> like the Auth Files compact mode so it survives a restart before you share your screen.</p>
+<details><summary>Alternative: default redacted, or sessionStorage only</summary><p>Default-redacted is safer for streaming but annoying day to day. sessionStorage matches the page's tab/sort prefs but forgets before the next call. Either is a one-line change.</p></details></article>
+
+<article class="card pick"><h3>4 · What happens to tabs, sort, pagination, timeline</h3>
+<div class="grid2"><div><strong class="keep">Keep</strong><ul><li>Provider tabs, now filtering which sections render.</li><li>Sort mode, applied within each section.</li><li>Timeline below the sections, unchanged, but fed all visible rows.</li><li>Click-to-load, Devin auto-fetch, cache generation guards, per-row Refresh and Codex Reset with confirm.</li></ul></div><div><strong class="remove">Drop</strong><ul><li>Pagination. Rows are ~60px, so 30 credentials fit without paging.</li><li>The card grid and <code>QuotaCard</code> on this page (the component stays for nothing else, so it is deleted along with its module).</li></ul></div></div>
+<details><summary>Alternative: keep pagination</summary><p>Keep the existing per-page slicing applied across the flattened row list. Sections would then split across pages, which looks odd. Recommend dropping.</p></details></article>
+</section>
+
+<section><div class="label">B / sequence</div><h2>Three passes, each shippable</h2><div class="steps">
+<div><strong>1 · Model</strong><p><code>rowModel.ts</code> + <code>providerSummary.ts</code> + <code>redactIdentity</code>, all pure, with tests. No UI change yet.</p></div>
+<div><strong>2 · Layout</strong><p><code>QuotaSummaryStrip</code>, <code>QuotaProviderSection</code>, <code>QuotaRow</code>. Swap the grid in <code>QuotaPage</code>, remove pagination, delete <code>QuotaCard</code>.</p></div>
+<div><strong>3 · Toggle + polish</strong><p>Header toggle, localStorage pref, redaction wired through rows and timeline. Locales ×4, visual check in the running app, <code>bun run verify</code>.</p></div>
+</div></section>
+
+<section><div class="label">C / mechanical detail</div><details class="card"><summary>Trust me: file map, i18n, verification</summary>
+<ul>
+<li>New: <code>src/features/quota/rowModel.ts</code>, <code>providerSummary.ts</code>, <code>src/utils/quota/redact.ts</code>, <code>components/QuotaSummaryStrip.tsx</code>, <code>QuotaProviderSection.tsx</code>, <code>QuotaRow.tsx</code> with SCSS modules.</li>
+<li>Edit: <code>QuotaPage.tsx</code> (grid → sections, drop pagination state), <code>QuotaHeader.tsx</code> (toggle prop), <code>QuotaTimeline.tsx</code> (use redaction), <code>uiState.ts</code> or a sibling for the localStorage boolean.</li>
+<li>Delete: <code>QuotaCard.tsx</code> + module once nothing imports it. <code>QuotaBody.module.scss</code> and the class contract stay because Auth Files still uses the bodies.</li>
+<li>Locales en / ru / zh-CN / zh-TW: <code>quota_management.show_names</code>, <code>hide_names</code>, <code>summary_of</code>, <code>summary_not_loaded</code>, <code>summary_show_more</code>, <code>summary_hide_more</code>, <code>credentials_count</code>. Russian sync test must pass.</li>
+<li>Tests: <code>rowModel.test.ts</code> (one fixture per provider), <code>providerSummary.test.ts</code> (sum, denominator, unloaded, soonest reset), <code>redact.test.ts</code>, adjust <code>quotaUiState.test.ts</code> and any test importing <code>QuotaCard</code>.</li>
+<li>Delegation: model + tests and layout scaffolding to sol; row/strip visual styling to opus/fable; final screenshot verdict by an agent against the running app at <code>bb-1…:8318</code>.</li>
+<li>Run <code>bun run verify</code>. No dev server launched; no commit unless asked.</li>
+</ul></details></section>
+
+<footer><h3>Tweak these three things</h3><p class="muted">Copyable replies:</p><p><code>Use an average, not a sum, for the summary headline.</code><br><code>Default to redacted names.</code><br><code>Keep pagination.</code></p></footer>
+</main></body></html>

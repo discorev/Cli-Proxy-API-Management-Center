@@ -1,6 +1,8 @@
 /**
- * 额度页纯逻辑：文件归类、tab 过滤、计数、分页。
+ * 额度页纯逻辑：文件归类、tab 过滤、计数、排序。
  * React-free —— 由 tests/quotaPageLogic.test.ts 直接消费。
+ *
+ * 分页已随卡片网格一同退役（行表按提供商分区，页边界会把分区切断）。
  */
 
 import type { AuthFileItem } from '@/types';
@@ -115,21 +117,3 @@ export const isQuotaRefreshDisabled = (
   loading: boolean,
   resetting: boolean
 ): boolean => !canRefresh || loading || resetting;
-
-export interface QuotaPagination<T> {
-  pageItems: T[];
-  currentPage: number;
-  totalPages: number;
-}
-
-/** 页码越界时收敛到有效区间（列表缩短后停留在最后一页而不是空页）。 */
-export function paginate<T>(items: T[], page: number, pageSize: number): QuotaPagination<T> {
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const currentPage = Math.min(Math.max(1, page), totalPages);
-  const start = (currentPage - 1) * pageSize;
-  return {
-    pageItems: items.slice(start, start + pageSize),
-    currentPage,
-    totalPages,
-  };
-}

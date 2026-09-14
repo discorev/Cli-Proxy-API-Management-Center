@@ -7,7 +7,12 @@
  */
 
 import { afterAll, beforeEach, describe, expect, test } from 'bun:test';
-import { readQuotaUiState, writeQuotaUiState } from '@/features/quota/uiState';
+import {
+  readPersistedQuotaRedactNames,
+  readQuotaUiState,
+  writePersistedQuotaRedactNames,
+  writeQuotaUiState,
+} from '@/features/quota/uiState';
 
 const KEY = 'quotaPage.uiState';
 
@@ -27,7 +32,11 @@ function installSessionStorage() {
       return store.size;
     },
   };
-  (globalThis as unknown as { window: unknown }).window = { sessionStorage: storage };
+  (globalThis as unknown as { window: unknown }).window = {
+    sessionStorage: storage,
+    // Redaction outlives the session, so it needs the durable half too.
+    localStorage: storage,
+  };
   return storage;
 }
 
@@ -76,5 +85,24 @@ describe('quota ui state', () => {
 
     storage.setItem(KEY, '"a string"');
     expect(readQuotaUiState()).toBeNull();
+  });
+});
+
+describe('quota name redaction preference', () => {
+  test('is absent until it is chosen, so the default stays the caller\'s to pick', () => {
+    expect(readPersistedQuotaRedactNames()).toBeNull();
+  });
+
+  test('round-trips through localStorage rather than the session store', () => {
+    writePersistedQuotaRedactNames(true);
+    expect(readPersistedQuotaRedactNames()).toBe(true);
+
+    writePersistedQuotaRedactNames(false);
+    expect(readPersistedQuotaRedactNames()).toBe(false);
+  });
+
+  test('treats a malformed payload as unset instead of as redacted', () => {
+    storage.setItem('quotaPage.redactNames', '{not json');
+    expect(readPersistedQuotaRedactNames()).toBeNull();
   });
 });

@@ -93,10 +93,11 @@ export function QuotaTimeline({
     () =>
       entries.map((entry) => ({
         name: getQuotaCacheKey(entry.file),
-        displayName:
-          entry.type === 'devin'
-            ? getQuotaDisplayName(entry.file)
-            : displayNameFor(entry.file.name),
+        // Redaction is the caller's transform, so it has to wrap the display
+        // name rather than sit beside it — otherwise Devin lanes, whose labels
+        // carry an account identity, would stay readable while the rows above
+        // them are masked.
+        displayName: displayNameFor(getQuotaDisplayName(entry.file)),
         provider: entry.type,
         quota: quotaFor(entry),
       })),

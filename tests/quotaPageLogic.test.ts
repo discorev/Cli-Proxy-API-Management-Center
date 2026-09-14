@@ -1,12 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { QUOTA_PAGE_SIZE } from '@/features/quota/constants';
 import {
   buildTabCounts,
   canRefreshQuotaAfterList,
   classifyQuotaFiles,
   filterEntriesByTab,
   isQuotaRefreshDisabled,
-  paginate,
   resolveQuotaProviderType,
   sortQuotaEntries,
   type QuotaFileEntry,
@@ -97,33 +95,6 @@ describe('isQuotaRefreshDisabled', () => {
   });
 });
 
-describe('paginate', () => {
-  const items = Array.from({ length: 45 }, (_, index) => index);
-
-  test('uses the configured 20-item page size', () => {
-    expect(QUOTA_PAGE_SIZE).toBe(20);
-    expect(paginate(items, 2, QUOTA_PAGE_SIZE)).toEqual({
-      pageItems: items.slice(20, 40),
-      currentPage: 2,
-      totalPages: 3,
-    });
-  });
-
-  test('clamps an out-of-range page instead of returning an empty slice', () => {
-    expect(paginate(items, 9, QUOTA_PAGE_SIZE).currentPage).toBe(3);
-    expect(paginate(items, 9, QUOTA_PAGE_SIZE).pageItems).toEqual(items.slice(40));
-    expect(paginate(items, 0, QUOTA_PAGE_SIZE).currentPage).toBe(1);
-  });
-
-  test('keeps at least one page when the list is empty', () => {
-    expect(paginate([], 1, QUOTA_PAGE_SIZE)).toEqual({
-      pageItems: [],
-      currentPage: 1,
-      totalPages: 1,
-    });
-  });
-});
-
 describe('sortQuotaEntries', () => {
   const entries = classifyQuotaFiles(FILES);
   const byName = (list: QuotaFileEntry[]) => list.map((entry) => entry.file.name);
@@ -191,10 +162,10 @@ describe('sortQuotaEntries', () => {
     expect(input).toEqual(entries);
   });
 
-  test('sorts before paginating, so the globally soonest lands on page one', () => {
+  test('lifts the globally soonest to the top, whichever section it came from', () => {
     // Last in the default order, first to recover.
     const last = entries[entries.length - 1].file.name;
     const sorted = sortQuotaEntries(entries, 'soonest', resolver({ [last]: 1 }));
-    expect(paginate(sorted, 1, 2).pageItems[0].file.name).toBe(last);
+    expect(sorted[0].file.name).toBe(last);
   });
 });

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
+import { ToggleSwitch } from '@/components/ui/ToggleSwitch';
 import { useCountUp } from '@/hooks/motion';
 import styles from './QuotaHeader.module.scss';
 
@@ -9,6 +10,9 @@ export type QuotaHeaderProps = {
   attentionCount: number;
   refreshing: boolean;
   disableControls: boolean;
+  /** True while account names are masked for screen sharing. */
+  redactNames: boolean;
+  onToggleRedactNames: (redactNames: boolean) => void;
   onRefreshAll: () => void;
 };
 
@@ -20,8 +24,16 @@ export type QuotaHeaderProps = {
  * （标题 0ms → meta 70ms → 动作 140ms → tabs 210ms）。
  */
 export function QuotaHeader(props: QuotaHeaderProps) {
-  const { totalCount, loadedCount, attentionCount, refreshing, disableControls, onRefreshAll } =
-    props;
+  const {
+    totalCount,
+    loadedCount,
+    attentionCount,
+    refreshing,
+    disableControls,
+    redactNames,
+    onToggleRedactNames,
+    onRefreshAll,
+  } = props;
   const { t } = useTranslation();
   // 批量结果陆续落地时，「已加载」是页面上唯一滚动的数字
   const displayLoadedCount = useCountUp(loadedCount);
@@ -55,6 +67,16 @@ export function QuotaHeader(props: QuotaHeaderProps) {
         </p>
       </div>
       <div className={styles.actions} data-reveal>
+        {/* Checked = names visible, so the label reads as what you get, not
+            what is hidden. The stored preference is the inverse. */}
+        <span className={styles.nameToggle}>
+          <ToggleSwitch
+            checked={!redactNames}
+            onChange={(visible) => onToggleRedactNames(!visible)}
+            label={t('quota_management.show_names')}
+            ariaLabel={t('quota_management.show_names')}
+          />
+        </span>
         <button
           type="button"
           className={styles.primaryAction}
