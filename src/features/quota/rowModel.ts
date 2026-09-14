@@ -124,6 +124,8 @@ function codexPlanLabel(planType: string | null | undefined, t: TFunction): stri
   return planType || normalized;
 }
 
+const CODEX_ROW_WINDOW_IDS = new Set(['weekly', 'monthly']);
+
 function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
   const subscriptionMs = resolveResetMs([quota.subscriptionActiveUntil ?? null]);
   const credits = (quota.rateLimitResetCredits ?? []).filter(
@@ -137,16 +139,21 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
       subscriptionMs === null
         ? null
         : `${t('codex_quota.expires_label')} ${formatInstantShort(subscriptionMs)}`,
-    windows: (quota.windows ?? []).map((window) => ({
-      id: window.id,
-      label: window.labelKey
-        ? t(window.labelKey, (window.labelParams ?? {}) as Record<string, string | number>)
-        : window.label,
-      remainingPercent: remainingFromUsed(window.usedPercent),
-      resetLabel: trimLabel(window.resetLabel),
-      resetAtMs: window.resetAtMs ?? null,
-      periodHours: window.periodHours ?? null,
-    })),
+    // Only the main weekly/monthly window: the 5-hour and per-model limits recover
+    // on their own and only crowd the row, which exists to answer "how much of
+    // the week is left" alongside the manual resets.
+    windows: (quota.windows ?? [])
+      .filter((window) => CODEX_ROW_WINDOW_IDS.has(window.id))
+      .map((window) => ({
+        id: window.id,
+        label: window.labelKey
+          ? t(window.labelKey, (window.labelParams ?? {}) as Record<string, string | number>)
+          : window.label,
+        remainingPercent: remainingFromUsed(window.usedPercent),
+        resetLabel: trimLabel(window.resetLabel),
+        resetAtMs: window.resetAtMs ?? null,
+        periodHours: window.periodHours ?? null,
+      })),
     resetCredits:
       availableCount === null || availableCount === undefined
         ? undefined
@@ -177,7 +184,8 @@ function devinRowModel(quota: DevinQuotaState, t: TFunction): QuotaRowModel {
     windows: (quota.windows ?? []).map((window) => ({
       id: window.id,
       label: t(`devin_quota.${window.id}`),
-      remainingPercent: window.remainingPercent === null ? null : clampPercent(window.remainingPercent),
+      remainingPercent:
+        window.remainingPercent === null ? null : clampPercent(window.remainingPercent),
       resetLabel: null,
       resetAtMs: window.resetAtMs,
       periodHours: window.periodHours,
@@ -206,8 +214,7 @@ function kimiRowModel(quota: KimiQuotaState, t: TFunction): QuotaRowModel {
           ? t(row.labelKey, (row.labelParams ?? {}) as Record<string, string | number>)
           : (row.label ?? ''),
         remainingPercent: remaining,
-        resetLabel:
-          row.resetAtMs == null ? trimLabel(formatKimiResetHint(t, row.resetHint)) : null,
+        resetLabel: row.resetAtMs == null ? trimLabel(formatKimiResetHint(t, row.resetHint)) : null,
         resetAtMs: row.resetAtMs ?? null,
         periodHours: row.periodHours ?? null,
       };

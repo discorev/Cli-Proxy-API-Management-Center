@@ -203,8 +203,7 @@ export function QuotaPage() {
   );
 
   /* ---------- 汇总条 ----------
-   * 始终覆盖全部提供商（不随 tab 收窄）：它回答「我还有没有余量」，
-   * 而这个问题不会因为正在看 Codex 就变成只关于 Codex。 */
+   * 跟随 tab 收窄：筛选器位于汇总条上方，对卡片和分区同时生效。 */
 
   // 汇总条页脚要的是「下一次」恢复，所以它必须跟着分钟时钟走，
   // 否则窗口翻过去之后页脚会停在一个已经走完的倒计时上。
@@ -213,7 +212,7 @@ export function QuotaPage() {
   const summaries = useMemo(
     () =>
       QUOTA_TAB_ORDER.map((provider) => {
-        const providerEntries = entries.filter((entry) => entry.type === provider);
+        const providerEntries = filteredEntries.filter((entry) => entry.type === provider);
         if (providerEntries.length === 0) return null;
         return buildProviderSummary(
           provider,
@@ -226,7 +225,7 @@ export function QuotaPage() {
           summaryNow
         );
       }).filter((summary) => summary !== null),
-    [displayNameFor, entries, getQuota, summaryNow, t]
+    [displayNameFor, filteredEntries, getQuota, summaryNow, t]
   );
 
   /* ---------- 分区 ---------- */
@@ -385,8 +384,6 @@ export function QuotaPage() {
       />
 
       <section className={styles.workbench}>
-        {!loading && <QuotaSummaryStrip summaries={summaries} resolvedTheme={resolvedTheme} />}
-
         {/* tabs + 排序作为一个整体入场（useRevealGroup 会给每个 [data-reveal]
             后代加一级级差，所以排序控件放在同一个节点里而不是做兄弟） */}
         <div className={styles.tabsRow} data-reveal>
@@ -407,6 +404,8 @@ export function QuotaPage() {
             />
           </div>
         </div>
+
+        {!loading && <QuotaSummaryStrip summaries={summaries} resolvedTheme={resolvedTheme} />}
 
         {error && (
           <div className={styles.errorBanner} role="alert">

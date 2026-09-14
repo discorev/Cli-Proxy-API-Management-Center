@@ -69,7 +69,15 @@ describe('toQuotaRowModel', () => {
       planType: 'pro',
       windows: [
         {
-          id: 'secondary',
+          id: 'five-hour',
+          label: '5-hour limit',
+          usedPercent: 50,
+          resetLabel: '',
+          resetAtMs: now + 3_600_000,
+          periodHours: 5,
+        },
+        {
+          id: 'weekly',
           label: 'Weekly limit',
           usedPercent: 12,
           resetLabel: '09-14 18:24',
@@ -84,6 +92,8 @@ describe('toQuotaRowModel', () => {
       ],
     };
     const model = toQuotaRowModel('codex', quota, t);
+    // The row shows only the weekly window; the 5-hour limit is dropped.
+    expect(model?.windows.map((window) => window.id)).toEqual(['weekly']);
     expect(model?.windows[0].remainingPercent).toBe(88);
     expect(model?.resetCredits?.available).toBe(3);
     // Spent credits are not upcoming capacity and must not be listed.
@@ -109,7 +119,9 @@ describe('toQuotaRowModel', () => {
   test('Kimi rows become remaining percent from used over limit', () => {
     const quota: KimiQuotaState = {
       status: 'success',
-      rows: [{ id: 'weekly', label: 'Weekly', used: 25, limit: 100, resetAtMs: now, periodHours: 168 }],
+      rows: [
+        { id: 'weekly', label: 'Weekly', used: 25, limit: 100, resetAtMs: now, periodHours: 168 },
+      ],
     };
     expect(toQuotaRowModel('kimi', quota, t)?.windows[0].remainingPercent).toBe(75);
   });
