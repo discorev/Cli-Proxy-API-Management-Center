@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import i18n from '@/i18n';
 import {
   readModelOptions,
   buildModelOptions,
@@ -15,6 +16,13 @@ const draft = (model: ModelAlias): ModelEntryInput => ({
   thinkingJson: model.thinking === undefined ? undefined : JSON.stringify(model.thinking),
   ...readModelOptions(model),
 });
+
+// Expect the label as rendered (translated and HTML-escaped): another test file may have
+// switched the shared i18n instance's language before this one runs.
+const label = (key: string) =>
+  renderToStaticMarkup(
+    createElement('span', null, i18n.t(`providersPage.modelOptions.${key}`))
+  ).slice('<span>'.length, -'</span>'.length);
 
 describe('provider model options', () => {
   test('editing hybrid levels preserves budgets, explicit booleans and future fields', () => {
@@ -185,23 +193,17 @@ describe('provider model options', () => {
 
   test('gates fields by provider capability', () => {
     const vertex = render('vertex');
-    expect(vertex).toContain('providersPage.modelOptions.displayName');
-    expect(vertex).toContain('providersPage.modelOptions.forceMapping');
-    expect(vertex).not.toContain('providersPage.modelOptions.maxContextLength');
-    expect(vertex).not.toContain('providersPage.modelOptions.isCompat');
+    expect(vertex).toContain(label('displayName'));
+    expect(vertex).toContain(label('forceMapping'));
+    expect(vertex).not.toContain(label('maxContextLength'));
+    expect(vertex).not.toContain(label('isCompat'));
     for (const brand of ['gemini', 'codex', 'openaiCompatibility'] as const) {
       const html = render(brand);
-      expect(html).toContain('providersPage.modelOptions.maxContextLength');
-      expect(html).toContain('providersPage.modelOptions.isCompat');
-      expect(html.includes('providersPage.modelOptions.supportConfigurationUpdate')).toBe(
-        brand === 'codex'
-      );
-      expect(html.includes('providersPage.modelOptions.inputModalitiesText')).toBe(
-        brand === 'openaiCompatibility'
-      );
-      expect(html.includes('providersPage.modelOptions.useMaxCompletionTokens')).toBe(
-        brand === 'openaiCompatibility'
-      );
+      expect(html).toContain(label('maxContextLength'));
+      expect(html).toContain(label('isCompat'));
+      expect(html.includes(label('supportConfigurationUpdate'))).toBe(brand === 'codex');
+      expect(html.includes(label('inputModalitiesText'))).toBe(brand === 'openaiCompatibility');
+      expect(html.includes(label('useMaxCompletionTokens'))).toBe(brand === 'openaiCompatibility');
     }
   });
 
