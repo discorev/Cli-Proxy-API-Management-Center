@@ -4,6 +4,7 @@ import {
   canRefreshQuotaAfterList,
   classifyQuotaFiles,
   filterEntriesByTab,
+  filterEntriesBySearch,
   isQuotaRefreshDisabled,
   resolveQuotaProviderType,
   sortQuotaEntries,
@@ -68,6 +69,7 @@ describe('buildTabCounts', () => {
       xai: 1,
       kimi: 1,
       devin: 0,
+      meta: 0,
     });
   });
 });
@@ -85,6 +87,39 @@ describe('filterEntriesByTab', () => {
       'codex-b.json',
     ]);
     expect(filterEntriesByTab(entries, 'antigravity')).toEqual([]);
+  });
+});
+
+describe('filterEntriesBySearch', () => {
+  const entries = classifyQuotaFiles([
+    ...FILES,
+    file('personal.json', 'codex', { email: 'Alice@Example.com' }),
+    file('work.json', 'claude', { email: 'Alice@Example.com' }),
+    file('private.json', 'codex', { account: 'secret-api-key' }),
+  ]);
+
+  test('ignores case and surrounding whitespace when matching filenames or emails', () => {
+    expect(filterEntriesBySearch(entries, ' CODEX-A ').map(({ file }) => file.name)).toEqual([
+      'codex-a.json',
+    ]);
+    expect(filterEntriesBySearch(entries, ' ALICE@example ').map(({ file }) => file.name)).toEqual([
+      'work.json',
+      'personal.json',
+    ]);
+  });
+
+  test('keeps all entries for empty searches and returns none for missing accounts', () => {
+    expect(filterEntriesBySearch(entries, '')).toBe(entries);
+    expect(filterEntriesBySearch(entries, '   ')).toBe(entries);
+    expect(filterEntriesBySearch(entries, 'missing')).toEqual([]);
+    expect(filterEntriesBySearch(entries, 'secret-api-key')).toEqual([]);
+  });
+
+  test('combines with provider tabs without changing the original entries', () => {
+    const before = [...entries];
+    const matches = filterEntriesBySearch(filterEntriesByTab(entries, 'codex'), 'alice');
+    expect(matches.map(({ file }) => file.name)).toEqual(['personal.json']);
+    expect(entries).toEqual(before);
   });
 });
 

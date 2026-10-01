@@ -25,6 +25,8 @@ import {
 } from '@/features/authFiles/constants';
 import { AuthFileCard } from '@/features/authFiles/components/AuthFileCard';
 import { AuthFileDetailsSheet } from '@/features/authFiles/components/AuthFileDetailsSheet';
+import { getAuthFileRefreshKey } from '@/features/authFiles/manualRefresh';
+import { AuthFileRefreshResults } from '@/features/authFiles/components/AuthFileRefreshResults';
 import { AuthFileModelsModal } from '@/features/authFiles/components/AuthFileModelsModal';
 import { AuthFilesToolbar } from '@/features/authFiles/components/AuthFilesToolbar';
 import { BatchActionBar } from '@/features/authFiles/components/BatchActionBar';
@@ -132,6 +134,11 @@ export function AuthFilesPage() {
     deletingAll,
     statusUpdating,
     manualRefreshing,
+    refreshingAllCredentials,
+    refreshResults,
+    closeRefreshResults,
+    handleRefreshAllCredentials,
+    cooldownResetting,
     batchStatusUpdating,
     fileInputRef,
     loadFiles,
@@ -141,6 +148,7 @@ export function AuthFilesPage() {
     handleDeleteAll,
     handleDownload,
     handleManualRefresh,
+    handleCooldownReset,
     handleStatusToggle,
     toggleSelect,
     selectAllVisible,
@@ -179,11 +187,12 @@ export function AuthFilesPage() {
     handlePrefixProxyChange,
     handlePrefixProxySave,
   } = useAuthFilesPrefixProxyEditor({
-    disableControls: connectionStatus !== 'connected',
+    disableControls: connectionStatus !== 'connected' || refreshingAllCredentials,
     loadFiles,
+    onFilesMutated: invalidateDerivedCaches,
   });
 
-  const disableControls = connectionStatus !== 'connected';
+  const disableControls = connectionStatus !== 'connected' || refreshingAllCredentials;
   const normalizedFilter = normalizeProviderKey(String(filter));
   const quotaFilterType: QuotaProviderType | null = QUOTA_PROVIDER_TYPES.has(
     normalizedFilter as QuotaProviderType
@@ -470,8 +479,12 @@ export function AuthFilesPage() {
   );
   const selectedNames = useMemo(() => Array.from(selectedFiles), [selectedFiles]);
   const selectedHasStatusUpdating = useMemo(
-    () => selectedNames.some((name) => statusUpdating[name] === true),
-    [selectedNames, statusUpdating]
+    () =>
+      files.some(
+        (file) =>
+          selectedFiles.has(file.name) && statusUpdating[getAuthFileRefreshKey(file)] === true
+      ),
+    [files, selectedFiles, statusUpdating]
   );
   const batchStatusButtonsDisabled =
     disableControls ||
@@ -595,7 +608,11 @@ export function AuthFilesPage() {
         disableControls={disableControls}
         onUpload={handleUploadClick}
         onRefresh={() => void handleHeaderRefresh()}
+        refreshingCredentials={refreshingAllCredentials}
+        credentialRefreshDisabled={Object.keys(manualRefreshing).length > 0}
+        onRefreshCredentials={handleRefreshAllCredentials}
       />
+      <AuthFileRefreshResults results={refreshResults} onClose={closeRefreshResults} />
       <input
         ref={fileInputRef}
         type="file"
@@ -709,6 +726,7 @@ export function AuthFilesPage() {
                 deleting={deleting}
                 statusUpdating={statusUpdating}
                 manualRefreshing={manualRefreshing}
+                cooldownResetting={cooldownResetting}
                 quotaFilterType={activeQuotaFilter}
                 statusBarCache={statusBarCache}
                 entranceDelayMs={cardEntranceDelay(index)}
@@ -716,6 +734,7 @@ export function AuthFilesPage() {
                 onShowModels={showModels}
                 onDownload={handleDownload}
                 onManualRefresh={handleManualRefresh}
+                onCooldownReset={handleCooldownReset}
                 onOpenPrefixProxyEditor={openPrefixProxyEditor}
                 onDelete={handleDelete}
                 onToggleStatus={handleStatusToggle}

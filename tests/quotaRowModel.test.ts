@@ -16,6 +16,7 @@ import type {
   CodexQuotaState,
   DevinQuotaState,
   KimiQuotaState,
+  MetaQuotaState,
   XaiQuotaState,
 } from '@/types';
 
@@ -178,5 +179,80 @@ describe('toQuotaRowModel', () => {
     const model = toQuotaRowModel('antigravity', quota, t);
     expect(model?.windows[0].remainingPercent).toBe(25);
     expect(model?.windows[0].label).toContain('·');
+  });
+
+  test('Codex shows Business Premium and the credit balance beside the renewal date', () => {
+    const quota = {
+      status: 'success',
+      planType: 'self_serve_business_prolite',
+      creditsUnlimited: true,
+      windows: [],
+    } as unknown as CodexQuotaState;
+    const model = toQuotaRowModel('codex', quota, t);
+    expect(model?.plan).toBe('codex_quota.plan_business_premium');
+    expect(model?.planNote).toBe('codex_quota.credit_balance_label codex_quota.credit_unlimited');
+  });
+
+  test('xAI prefers the subscription label and hides an empty monthly cycle on weekly plans', () => {
+    const quota: XaiQuotaState = {
+      status: 'success',
+      billing: {
+        mode: 'billing',
+        periodType: 'weekly',
+        usagePercent: 10,
+        usedPercent: 0,
+        productUsage: [],
+        monthlyLimitCents: 0,
+        usedCents: 0,
+        includedUsedCents: 0,
+        onDemandCapCents: null,
+        onDemandUsedCents: null,
+        onDemandUsedPercent: null,
+        resetAtMs: now + 86_400_000,
+        periodHours: 168,
+        billingPeriodEnd: new Date(now + 20 * 86_400_000).toISOString(),
+        planLabel: 'SuperGrok Heavy',
+        planTier: 'elite',
+      },
+    };
+    const model = toQuotaRowModel('xai', quota, t);
+    expect(model?.plan).toBe('SuperGrok Heavy');
+    expect(model?.windows.map((window) => window.id)).toEqual([XAI_WEEKLY_ROW_ID]);
+  });
+
+  test('Meta windows become remaining percent with second-based reset instants', () => {
+    const quota: MetaQuotaState = {
+      status: 'success',
+      data: {
+        planName: 'Muse Plus',
+        isSubscriptionActive: true,
+        windows: [
+          { id: 'window', usedPercent: 25, resetAt: 1_800_000_000, durationMinutes: 300 },
+          { id: 'weekly', usedPercent: null },
+        ],
+      },
+    };
+    const model = toQuotaRowModel('meta', quota, t);
+    expect(model?.plan).toBe('Muse Plus');
+    expect(model?.planNote).toBe('meta_quota.active');
+    expect(model?.windows).toEqual([
+      {
+        id: 'window',
+        label: 'meta_quota.window_duration',
+        remainingPercent: 75,
+        resetLabel: null,
+        resetAtMs: 1_800_000_000_000,
+        periodHours: 5,
+      },
+      {
+        id: 'weekly',
+        label: 'meta_quota.weekly',
+        remainingPercent: null,
+        resetLabel: null,
+        resetAtMs: null,
+        periodHours: 168,
+      },
+    ]);
+    expect(model?.message).toBeNull();
   });
 });

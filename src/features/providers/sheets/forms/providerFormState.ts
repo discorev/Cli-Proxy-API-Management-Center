@@ -5,7 +5,9 @@ import {
   OPENROUTER_BASE_URL,
   OPENROUTER_PROVIDER_NAME,
 } from '../../openRouter';
-import { readThinkingLevels } from '../../thinkingLevels';
+import { readModelOptions } from '../../modelOptions';
+import { pickProviderBehavior } from '../../providerBehavior';
+import { readRuntimePolicy } from '../../runtimePolicy';
 import type {
   ApiKeyEntryInput,
   ModelEntryInput,
@@ -22,6 +24,7 @@ export const emptyApiKeyEntry = (): ApiKeyEntryInput => ({
   weight: undefined,
 });
 
+const META_API_BASE_URL = 'https://api.meta.ai/v1';
 const XAI_API_BASE_URL = 'https://api.x.ai/v1';
 
 const stripDisableAllRule = (list?: string[]): string[] =>
@@ -44,11 +47,18 @@ export function buildInitialProviderForm(
       apiKey: '',
       name: brand === 'openrouter' ? OPENROUTER_PROVIDER_NAME : '',
       baseUrl:
-        brand === 'xai' ? XAI_API_BASE_URL : brand === 'openrouter' ? OPENROUTER_BASE_URL : '',
+        brand === 'meta'
+          ? META_API_BASE_URL
+          : brand === 'xai'
+            ? XAI_API_BASE_URL
+            : brand === 'openrouter'
+              ? OPENROUTER_BASE_URL
+              : '',
       proxyUrl: '',
       prefix: '',
       disabled: false,
-      disableCooling: false,
+      disableCooling: undefined,
+      runtimePolicy: readRuntimePolicy(),
       priority: undefined,
       weight: undefined,
       models: [emptyModel()],
@@ -62,6 +72,7 @@ export function buildInitialProviderForm(
       testModel:
         isOpenAICompatibleProviderBrand(brand) ||
         brand === 'codex' ||
+        brand === 'meta' ||
         brand === 'xai' ||
         isClaudeLikeBrand(brand) ||
         brand === 'gemini' ||
@@ -82,17 +93,20 @@ export function buildInitialProviderForm(
       proxyUrl: '',
       prefix: config.prefix ?? '',
       disabled: config.disabled === true,
-      disableCooling: config.disableCooling === true,
+      disableCooling: config.disableCooling,
+      runtimePolicy: readRuntimePolicy(config),
+      ...pickProviderBehavior(config, brand),
       priority: config.priority,
       models: config.models?.length
         ? config.models.map((model) => ({
+            sourceIndex: model.sourceIndex,
             name: model.name,
             alias: model.alias ?? '',
             priority: model.priority,
             testModel: model.testModel,
             image: model.image === true,
             thinkingJson: formatJsonObject(model.thinking),
-            thinkingLevels: readThinkingLevels(model.thinking),
+            ...readModelOptions(model),
           }))
         : [emptyModel()],
       headers: config.headers
@@ -104,6 +118,7 @@ export function buildInitialProviderForm(
         ? config.apiKeyEntries.map((entry) => ({
             apiKey: '',
             existingApiKey: entry.apiKey,
+            sourceIndex: entry.sourceIndex,
             proxyUrl: entry.proxyUrl ?? '',
             weight: entry.weight,
             authIndex: entry.authIndex,
@@ -125,17 +140,20 @@ export function buildInitialProviderForm(
     proxyUrl: config.proxyUrl ?? '',
     prefix: config.prefix ?? '',
     disabled,
-    disableCooling: config.disableCooling === true,
+    disableCooling: config.disableCooling,
+    runtimePolicy: readRuntimePolicy(config),
+    ...pickProviderBehavior(config, brand),
     priority: config.priority,
     weight: config.weight,
     models: config.models?.length
       ? config.models.map((model) => ({
+          sourceIndex: model.sourceIndex,
           name: model.name,
           alias: model.alias ?? '',
           priority: model.priority,
           testModel: model.testModel,
           thinkingJson: formatJsonObject(model.thinking),
-          thinkingLevels: readThinkingLevels(model.thinking),
+          ...readModelOptions(model),
         }))
       : [emptyModel()],
     headers: config.headers
@@ -159,6 +177,7 @@ export function buildInitialProviderForm(
       : undefined,
     testModel:
       brand === 'codex' ||
+      brand === 'meta' ||
       brand === 'xai' ||
       isClaudeLikeBrand(brand) ||
       brand === 'gemini' ||

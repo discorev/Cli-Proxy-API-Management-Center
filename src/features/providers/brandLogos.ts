@@ -3,6 +3,7 @@ import type { IconProps } from '@/components/ui/icons';
 import openrouterLogo from '@/assets/icons/openrouter.png';
 import claudeLogo from '@/assets/icons/claude.svg';
 import codexLogo from '@/assets/icons/codex.svg';
+import metaLogo from '@/assets/icons/meta.svg';
 import devinLightLogo from '@/assets/icons/devin.svg';
 import devinDarkLogo from '@/assets/icons/devin-dark.svg';
 import geminiLogo from '@/assets/icons/gemini.svg';
@@ -31,6 +32,7 @@ export const PROVIDER_LOGOS: Record<ProviderBrandLogoKey, ProviderBrandLogo> = {
   interactions: { src: geminiLogo },
   claude: { src: claudeLogo },
   codex: { src: codexLogo },
+  meta: { src: metaLogo, transparent: true },
   devin: { src: devinLightLogo, darkSrc: devinDarkLogo, transparent: true },
   xai: { src: xaiLightLogo, darkSrc: xaiDarkLogo, transparent: true },
   vertex: { src: vertexLogo },

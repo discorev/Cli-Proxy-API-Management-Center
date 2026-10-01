@@ -1,5 +1,5 @@
 /**
- * One flat shape for six provider states.
+ * One flat shape for seven provider states.
  *
  * The card grid let every provider render its own body, so each state shape
  * only ever had to satisfy its own component. The row layout and the summary
@@ -19,6 +19,7 @@ import type {
   CodexQuotaState,
   DevinQuotaState,
   KimiQuotaState,
+  MetaQuotaState,
   XaiQuotaState,
 } from '@/types';
 import {
@@ -116,6 +117,7 @@ function claudeRowModel(quota: ClaudeQuotaState, t: TFunction): QuotaRowModel {
 function codexPlanLabel(planType: string | null | undefined, t: TFunction): string | null {
   const normalized = normalizePlanType(planType);
   if (!normalized) return null;
+  if (normalized === 'self_serve_business_prolite') return t('codex_quota.plan_business_premium');
   if (normalized === 'pro') return t('codex_quota.plan_pro');
   if (PREMIUM_CODEX_PLAN_TYPES.has(normalized)) return t('codex_quota.plan_prolite');
   if (normalized === 'plus') return t('codex_quota.plan_plus');
@@ -132,13 +134,19 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
     (credit) => credit.status === 'available'
   );
   const availableCount = quota.rateLimitResetCreditsAvailableCount;
+  const creditBalance = quota.creditsUnlimited
+    ? t('codex_quota.credit_unlimited')
+    : (quota.creditBalance ?? null);
+  const planNotes = [
+    subscriptionMs === null
+      ? null
+      : `${t('codex_quota.expires_label')} ${formatInstantShort(subscriptionMs)}`,
+    creditBalance === null ? null : `${t('codex_quota.credit_balance_label')} ${creditBalance}`,
+  ].filter((note) => note !== null);
 
   return {
     plan: codexPlanLabel(quota.planType, t),
-    planNote:
-      subscriptionMs === null
-        ? null
-        : `${t('codex_quota.expires_label')} ${formatInstantShort(subscriptionMs)}`,
+    planNote: planNotes.length ? planNotes.join(' · ') : null,
     // Only the main weekly/monthly window: the 5-hour and per-model limits recover
     // on their own and only crowd the row, which exists to answer "how much of
     // the week is left" alongside the manual resets.
@@ -241,7 +249,7 @@ function xaiRowModel(quota: XaiQuotaState, t: TFunction): QuotaRowModel {
   if (!billing) return { ...EMPTY_MODEL, message: t('xai_quota.empty_data') };
   if (billing.mode === 'paid-health') {
     return {
-      plan: t('xai_quota.plan_paid'),
+      plan: billing.planLabel ?? t('xai_quota.plan_paid'),
       planNote: null,
       windows: [],
       message: t('xai_quota.paid_health'),
@@ -284,10 +292,13 @@ function xaiRowModel(quota: XaiQuotaState, t: TFunction): QuotaRowModel {
     });
   }
 
+  // A weekly plan reports an empty 0/0 monthly cycle; hide it like the card does.
+  const hasWeekly = windows.some((window) => window.id === XAI_WEEKLY_ROW_ID);
   const hasMonthly =
-    billing.monthlyLimitCents !== null ||
-    billing.usedCents !== null ||
-    Boolean(billing.billingPeriodEnd);
+    (billing.monthlyLimitCents !== null ||
+      billing.usedCents !== null ||
+      Boolean(billing.billingPeriodEnd)) &&
+    !(hasWeekly && billing.monthlyLimitCents === 0 && billing.usedCents === 0);
   if (hasMonthly) {
     // A billing cycle, not a rate limit — it carries no periodHours, so the
     // summary never mistakes it for the provider's longest quota window.
@@ -301,11 +312,44 @@ function xaiRowModel(quota: XaiQuotaState, t: TFunction): QuotaRowModel {
     });
   }
 
+  const prepaid = billing.prepaidBalanceCents ?? 0;
   return {
-    plan: xaiPlanLabel(billing.monthlyLimitCents, t),
-    planNote: null,
+    plan: billing.planLabel ?? xaiPlanLabel(billing.monthlyLimitCents, t),
+    planNote: prepaid > 0 ? `${t('xai_quota.prepaid')} $${(prepaid / 100).toFixed(2)}` : null,
     windows,
     message: windows.length === 0 ? t('xai_quota.empty_data') : null,
+  };
+}
+
+/* ------------------------------------------------------------------ Meta */
+
+function metaRowModel(quota: MetaQuotaState, t: TFunction): QuotaRowModel {
+  const data = quota.data;
+  if (!data) return { ...EMPTY_MODEL, message: t('meta_quota.empty_data') };
+  return {
+    plan: data.planName ?? null,
+    planNote:
+      data.isSubscriptionActive === undefined
+        ? null
+        : t(data.isSubscriptionActive ? 'meta_quota.active' : 'meta_quota.inactive'),
+    windows: data.windows.map((window) => ({
+      id: window.id,
+      label:
+        window.id === 'window' && window.durationMinutes
+          ? t('meta_quota.window_duration', { minutes: window.durationMinutes })
+          : t(`meta_quota.${window.id}`),
+      remainingPercent: remainingFromUsed(window.usedPercent),
+      resetLabel: null,
+      resetAtMs: window.resetAt === undefined ? null : window.resetAt * 1000,
+      periodHours: window.durationMinutes
+        ? window.durationMinutes / 60
+        : window.id === 'weekly'
+          ? 168
+          : null,
+    })),
+    message: data.windows.every((window) => window.usedPercent === null)
+      ? t('meta_quota.empty_data')
+      : null,
   };
 }
 
@@ -403,6 +447,8 @@ export function toQuotaRowModel(
       return kimiRowModel(quota as KimiQuotaState, t);
     case 'xai':
       return xaiRowModel(quota as XaiQuotaState, t);
+    case 'meta':
+      return metaRowModel(quota as MetaQuotaState, t);
     case 'antigravity':
       return antigravityRowModel(quota as AntigravityQuotaState, t);
     default:

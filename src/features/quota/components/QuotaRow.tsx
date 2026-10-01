@@ -18,6 +18,7 @@ import { buildResetDisplay, resolveQuotaErrorMessage, type ResetDisplay } from '
 import { useNow } from '@/hooks/useNow';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
+import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../resetSchedule';
 import { toQuotaRowModel } from '../rowModel';
 import { quotaMeterLevel, type QuotaMeterLevel } from '../meterLevel';
@@ -79,6 +80,13 @@ export function QuotaRow(props: QuotaRowProps) {
   const adapter = QUOTA_ADAPTERS[entry.type];
   const status = quota?.status ?? 'idle';
   const loading = status === 'loading';
+  const claudeReset = useClaudeResetGrants(
+    entry.file,
+    entry.type === 'claude' && status !== 'idle',
+    !canRefresh || loading || resetting,
+    quota,
+    onRefresh
+  );
 
   // Captured at mount, like the card before it: the cascade plays once on first
   // paint and never replays when a tab switch remounts the list.
@@ -188,6 +196,24 @@ export function QuotaRow(props: QuotaRowProps) {
                 <ResetText display={creditDisplay} soon={nextCredit?.id === urgentRowId} />
               </div>
             )}
+
+            {entry.type === 'claude' && (
+              <div className={styles.window}>
+                <div className={styles.windowHead}>
+                  <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
+                    {t('claude_reset.remaining')}
+                  </span>
+                </div>
+                <span className={styles.creditsValue}>
+                  <span className={styles.creditsCount}>{claudeReset.count ?? '--'}</span>
+                </span>
+                {claudeReset.message && (
+                  <span role="status" className={styles.creditsError}>
+                    {t(`claude_reset.${claudeReset.message}`)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.message}>
@@ -197,6 +223,18 @@ export function QuotaRow(props: QuotaRowProps) {
       </div>
 
       <div className={styles.actions}>
+        {entry.type === 'claude' && status !== 'idle' && (
+          <button
+            type="button"
+            className={styles.action}
+            onClick={claudeReset.confirm}
+            disabled={claudeReset.blocked}
+            title={t(`claude_reset.${claudeReset.buttonLabel}`)}
+          >
+            <IconRefreshCw size={12} className={claudeReset.busy ? styles.spinning : undefined} />
+            {t(`claude_reset.${claudeReset.buttonLabel}`)}
+          </button>
+        )}
         {showReset && (
           <button
             type="button"
@@ -213,7 +251,7 @@ export function QuotaRow(props: QuotaRowProps) {
           type="button"
           className={status === 'idle' ? `${styles.action} ${styles.actionPrimary}` : styles.action}
           onClick={onRefresh}
-          disabled={isQuotaRefreshDisabled(canRefresh, loading, resetting)}
+          disabled={isQuotaRefreshDisabled(canRefresh, loading, resetting || claudeReset.busy)}
           title={t('auth_files.quota_refresh_hint')}
         >
           <IconRefreshCw size={12} className={loading ? styles.spinning : undefined} />
