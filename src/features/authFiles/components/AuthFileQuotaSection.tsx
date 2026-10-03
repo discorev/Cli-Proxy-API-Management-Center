@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   captureQuotaCacheGeneration,
@@ -20,6 +20,7 @@ import {
   isResetSessionCurrent,
   settleResetOutcome,
 } from '@/features/quota/resetSession';
+import { readQuotaCacheIntoStore, shouldReadQuotaCacheOnMount } from '../quotaCacheRead';
 import styles from './AuthFileQuota.module.scss';
 
 /** 认证文件卡片外衣：紧凑额度样式绑定成类型化契约（缺键在模块初始化即抛）。 */
@@ -64,6 +65,16 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
   const updateQuotaState = useQuotaStore(
     (state) => state[adapter.storeSetter] as unknown as QuotaMapUpdater
   );
+
+  // Claude/Codex cards re-read the usage cache (GET) once per mount and credential;
+  // a card mounted before the connection is ready reads once it becomes usable.
+  const cacheReadKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!shouldReadQuotaCacheOnMount(quotaType, file, disableControls)) return;
+    if (cacheReadKeyRef.current === cacheKey) return;
+    cacheReadKeyRef.current = cacheKey;
+    void readQuotaCacheIntoStore(adapter, file, t);
+  }, [adapter, cacheKey, disableControls, file, quotaType, t]);
 
   const refreshQuotaForFile = useCallback(async () => {
     if (disableControls) return;

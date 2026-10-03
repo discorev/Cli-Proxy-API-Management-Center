@@ -36,6 +36,7 @@ import {
   type UsageCacheResult,
   type UsageLoadMode,
 } from '../usageCache';
+import { claudeLiveRowId, overlayLiveWindows } from '../liveWindows';
 
 export type ClaudeQuotaData = {
   windows: ClaudeQuotaWindow[];
@@ -163,7 +164,8 @@ export const resolveClaudePlanType = (profile: ClaudeProfileResponse | null): st
 };
 
 /**
- * Builds quota data from one cached entry. A missing usage body yields no windows.
+ * Builds quota data from one cached entry. A missing usage body yields no windows;
+ * header-observed windows newer than the body update its usage rows.
  * Grant status comes from the backend's parsed inventory (entry.resets), never the
  * raw usage body, so a stale body cannot offer a claim.
  */
@@ -173,7 +175,9 @@ export const buildClaudeQuotaData = (
 ): ClaudeQuotaData => {
   const payload = entry.raw.usage === undefined ? null : parseClaudeUsagePayload(entry.raw.usage);
   return {
-    windows: payload ? buildClaudeQuotaWindows(payload, t) : [],
+    windows: payload
+      ? overlayLiveWindows(buildClaudeQuotaWindows(payload, t), entry, claudeLiveRowId)
+      : [],
     extraUsage: payload?.extra_usage,
     planType: resolveClaudePlanType(parseClaudeProfilePayload(entry.raw.profile)),
     resetGrants: parseAnthropicResetGrantStatus(entry.resets?.body ?? null),

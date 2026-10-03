@@ -34,6 +34,22 @@ export interface CredentialResets {
   body: Record<string, unknown>;
 }
 
+/**
+ * A subscription window as the backend tracks it for routing (`UsageWindow` in
+ * `sdk/cliproxy/auth/usage.go`). The backend parses these from every proxied
+ * response's rate-limit headers as well as from usage fetches.
+ */
+export interface CredentialUsageWindow {
+  /** `5h`, `7d` or `long`. */
+  kind: string;
+  /** Empty for account-wide windows; `fable` for the Fable-only weekly limit. */
+  scope: string;
+  /** Percent used, 0..100. */
+  usedPercent: number;
+  resetsAtMs: number | null;
+  lengthSeconds: number;
+}
+
 export interface CredentialUsageEntry {
   authIndex: string;
   authId: string;
@@ -42,7 +58,10 @@ export interface CredentialUsageEntry {
   raw: CredentialUsageRaw;
   /** Null when the backend could not establish reset availability. */
   resets: CredentialResets | null;
+  /** Fetched windows merged with header observations; see `observedAtMs`. */
+  windows: CredentialUsageWindow[];
   fetchedAtMs: number | null;
+  /** When response headers last updated `windows`; never set by a fetch. */
   observedAtMs: number | null;
   nextFetchAtMs: number | null;
   cooldownUntilMs: number | null;
@@ -119,6 +138,24 @@ const normalizeResets = (value: unknown): CredentialResets | null => {
   return { credits, body: value };
 };
 
+const normalizeWindows = (value: unknown): CredentialUsageWindow[] =>
+  Array.isArray(value)
+    ? value.filter(isRecord).flatMap((window) => {
+        const usedPercent = window.used_percent;
+        if (typeof usedPercent !== 'number' || !Number.isFinite(usedPercent)) return [];
+        const length = window.length;
+        return [
+          {
+            kind: text(window.kind),
+            scope: text(window.scope).toLowerCase(),
+            usedPercent,
+            resetsAtMs: parseUsageTimestamp(window.resets_at),
+            lengthSeconds: typeof length === 'number' && Number.isFinite(length) ? length : 0,
+          },
+        ];
+      })
+    : [];
+
 export const normalizeCredentialUsageEntry = (value: unknown): CredentialUsageEntry | null => {
   if (!isRecord(value)) return null;
   const authIndex = text(value.auth_index);
@@ -129,6 +166,7 @@ export const normalizeCredentialUsageEntry = (value: unknown): CredentialUsageEn
     provider: text(value.provider).toLowerCase(),
     raw: normalizeRaw(value.raw),
     resets: normalizeResets(value.resets),
+    windows: normalizeWindows(value.windows),
     fetchedAtMs: parseUsageTimestamp(value.fetched_at),
     observedAtMs: parseUsageTimestamp(value.observed_at),
     nextFetchAtMs: parseUsageTimestamp(value.next_fetch_at),

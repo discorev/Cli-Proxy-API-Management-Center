@@ -55,6 +55,7 @@ describe('credential usage normalization', () => {
         resetCredits: { available_count: 1 },
       },
       resets: null,
+      windows: [],
       fetchedAtMs: Date.parse('2026-10-02T10:00:00Z'),
       observedAtMs: null,
       nextFetchAtMs: Date.parse('2026-10-02T10:03:00Z'),
@@ -62,6 +63,39 @@ describe('credential usage normalization', () => {
       refreshing: false,
       lastError: 'claude profile: upstream status 503',
     });
+  });
+
+  test('maps routing windows; reset times are omitted when unset', () => {
+    const [entry] = normalizeCredentialUsageList([
+      {
+        ...wireEntry,
+        observed_at: '2026-10-02T10:05:00Z',
+        windows: [
+          {
+            kind: '7d',
+            scope: 'fable',
+            used_percent: 41.5,
+            resets_at: '2026-10-05T10:00:00Z',
+            length: 604800,
+          },
+          { kind: '5h', scope: '', used_percent: 12, length: 18000 },
+          { kind: '7d', scope: '', used_percent: 'x', length: 604800 },
+          null,
+        ],
+      },
+    ]);
+    expect(entry.observedAtMs).toBe(Date.parse('2026-10-02T10:05:00Z'));
+    expect(entry.windows).toEqual([
+      {
+        kind: '7d',
+        scope: 'fable',
+        usedPercent: 41.5,
+        resetsAtMs: Date.parse('2026-10-05T10:00:00Z'),
+        lengthSeconds: 604800,
+      },
+      { kind: '5h', scope: '', usedPercent: 12, resetsAtMs: null, lengthSeconds: 18000 },
+    ]);
+    expect(normalizeCredentialUsageList([{ auth_index: 'x' }])[0].windows).toEqual([]);
   });
 
   test('drops malformed entries and non-array bodies', () => {

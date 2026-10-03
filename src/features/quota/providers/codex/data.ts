@@ -39,6 +39,7 @@ import {
   type UsageCacheResult,
   type UsageLoadMode,
 } from '../usageCache';
+import { codexLiveRowId, overlayLiveWindows } from '../liveWindows';
 
 export type CodexQuotaData = {
   planType: string | null;
@@ -335,7 +336,10 @@ const buildCodexResetCredits = (entry: CredentialUsageEntry): CodexRateLimitRese
   }));
 };
 
-/** Builds quota data from one cached entry. A missing usage body yields no windows. */
+/**
+ * Builds quota data from one cached entry. A missing usage body yields no windows;
+ * header-observed windows newer than the body update the primary rate-limit rows.
+ */
 export const buildCodexQuotaData = (
   file: AuthFileItem,
   { entry, meta }: UsageCacheResult,
@@ -366,7 +370,9 @@ export const buildCodexQuotaData = (
       : null,
     rateLimitResetCredits: credits,
     rateLimitResetCreditsError: '',
-    windows: payload ? buildCodexQuotaWindows(payload, t) : [],
+    windows: payload
+      ? overlayLiveWindows(buildCodexQuotaWindows(payload, t), entry, codexLiveRowId)
+      : [],
     usage: meta,
   };
 };
