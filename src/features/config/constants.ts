@@ -163,6 +163,7 @@ export const FIELD_VALUE_KEYS: Record<string, readonly string[]> = {
   maxRetryInterval: ['maxRetryInterval'],
   authAutoRefreshWorkers: ['authAutoRefreshWorkers'],
   routingStrategy: ['routingStrategy'],
+  resetCreditsAutoApply: ['resetCreditsAutoApply'],
   disableImageGeneration: ['disableImageGeneration'],
   gptImage2BaseModel: ['gptImage2BaseModel'],
   routingSessionAffinityTTL: ['routingSessionAffinityTTL'],

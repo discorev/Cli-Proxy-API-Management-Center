@@ -187,6 +187,18 @@ describe('CodexQuotaBody', () => {
     expect(markup).not.toContain('Soon');
   });
 
+  test('shows -- for reset credits when the backend sent no inventory', () => {
+    const unknown: CodexQuotaState = {
+      ...quota,
+      resetInventoryKnown: false,
+      rateLimitResetCredits: [],
+      rateLimitResetCreditsAvailableCount: null,
+    };
+    const markup = renderToStaticMarkup(createElement(CodexQuotaBody, { quota: unknown, classes }));
+    expect(markup).toContain('Manual resets');
+    expect(markup).toContain('>--<');
+  });
+
   test('keeps the baked label alone when the store entry predates resetAtMs', () => {
     const stale: CodexQuotaState = {
       ...quota,

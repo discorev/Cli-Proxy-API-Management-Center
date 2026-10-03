@@ -434,6 +434,7 @@ export function parseRoutingStrategy(raw: unknown): RoutingStrategy {
     return 'weighted-round-robin';
   }
   if (['fill-first', 'fillfirst', 'ff'].includes(normalized)) return 'fill-first';
+  if (['intelligent-fill', 'intelligentfill', 'if'].includes(normalized)) return 'intelligent-fill';
   return 'round-robin';
 }
 
@@ -1256,6 +1257,7 @@ function getNextDirtyFields(
       'routingStrategy',
       'routingSessionAffinity',
       'routingSessionAffinityTTL',
+      'resetCreditsAutoApply',
     ] as Array<keyof VisualConfigValues>
   ).forEach(updateScalarDirty);
 
@@ -1427,6 +1429,7 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
   const remoteManagement = asRecord(parsed['management']);
   const quotaExceeded = asRecord(parsed['quota-exceeded']);
   const routing = asRecord(parsed.routing);
+  const resetCredits = asRecord(parsed['reset-credits']);
   const payload = asRecord(v8Requests?.['payload']);
   const streaming = asRecord(v8Requests?.['streaming']);
   const plugins = asRecord(parsed.plugins);
@@ -1532,6 +1535,7 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
     quotaAntigravityCredits: Boolean(antigravity?.['antigravity-credits'] ?? false),
 
     routingStrategy: parseRoutingStrategy(routing?.strategy),
+    resetCreditsAutoApply: resetCredits?.['auto-apply'] === true,
     routingSessionAffinity: Boolean(routing?.['session-affinity']),
     routingSessionAffinityTTL:
       typeof routing?.['session-affinity-ttl'] === 'string' ? routing['session-affinity-ttl'] : '',
@@ -2019,6 +2023,12 @@ export function useVisualConfig() {
             );
           }
           deleteIfMapEmpty(doc, ['routing']);
+        }
+
+        if (dirtyFields.has('resetCreditsAutoApply')) {
+          // Also replaces a legal null section, which setIn cannot traverse.
+          ensureMapInDoc(doc, ['reset-credits']);
+          setBooleanInDoc(doc, ['reset-credits', 'auto-apply'], values.resetCreditsAutoApply);
         }
 
         const keepaliveSeconds =

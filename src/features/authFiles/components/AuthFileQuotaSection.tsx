@@ -13,7 +13,13 @@ import { isRuntimeOnlyAuthFile, type QuotaProviderType } from '@/features/authFi
 import { Button } from '@/components/ui/Button';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { bindQuotaClasses } from '@/features/quota/types';
-import { QUOTA_ADAPTERS, type QuotaCardState } from '@/features/quota/providers';
+import { QUOTA_ADAPTERS, getQuotaRefresher, type QuotaCardState } from '@/features/quota/providers';
+import { describeCodexResetOutcome } from '@/features/quota/resetOutcome';
+import {
+  captureResetSession,
+  isResetSessionCurrent,
+  settleResetOutcome,
+} from '@/features/quota/resetSession';
 import styles from './AuthFileQuota.module.scss';
 
 /** 认证文件卡片外衣：紧凑额度样式绑定成类型化契约（缺键在模块初始化即抛）。 */
@@ -35,7 +41,7 @@ export type AuthFileQuotaSectionProps = {
 
 export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
   const { file, quotaType, disableControls } = props;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
   const [resettingQuota, setResettingQuota] = useState(false);
@@ -73,7 +79,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     }));
 
     try {
-      const data = await adapter.fetchQuota(file, t);
+      const data = await getQuotaRefresher(adapter)(file, t, quota);
       commitIfQuotaCacheCurrent(cacheGeneration, () => {
         updateQuotaState((prev) => ({
           ...prev,
@@ -95,16 +101,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
         );
       });
     }
-  }, [
-    adapter,
-    cacheKey,
-    disableControls,
-    file,
-    quota?.status,
-    showNotification,
-    t,
-    updateQuotaState,
-  ]);
+  }, [adapter, cacheKey, disableControls, file, quota, showNotification, t, updateQuotaState]);
 
   const resetQuotaForFile = useCallback(() => {
     if (disableControls) return;
@@ -122,22 +119,35 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
       confirmText: t('codex_quota.reset_confirm_button'),
       variant: 'primary',
       onConfirm: async () => {
-        const cacheGeneration = captureQuotaCacheGeneration(file.name);
+        const session = captureResetSession(file.name);
         setResettingQuota(true);
         try {
-          const data = await resetQuota(file, t);
-          commitIfQuotaCacheCurrent(cacheGeneration, () => {
-            updateQuotaState((prev) => ({
-              ...prev,
-              [cacheKey]: adapter.buildSuccessState(data),
-            }));
-            showNotification(t('codex_quota.reset_success', { name: file.name }), 'success');
-          });
+          const { code, data, nextFetchAtMs } = await resetQuota(file, t, quota);
+          settleResetOutcome(
+            session,
+            () => {
+              if (data === null) return;
+              updateQuotaState((prev) => ({
+                ...prev,
+                [cacheKey]: adapter.buildSuccessState(data),
+              }));
+            },
+            () => {
+              const notice = describeCodexResetOutcome(
+                t,
+                code,
+                file.name,
+                nextFetchAtMs,
+                i18n.resolvedLanguage
+              );
+              showNotification(notice.message, notice.type);
+            }
+          );
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : t('common.unknown_error');
-          commitIfQuotaCacheCurrent(cacheGeneration, () => {
+          if (isResetSessionCurrent(session)) {
             showNotification(t('codex_quota.reset_failed', { name: file.name, message }), 'error');
-          });
+          }
         } finally {
           setResettingQuota(false);
         }
@@ -148,7 +158,8 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     cacheKey,
     disableControls,
     file,
-    quota?.status,
+    i18n,
+    quota,
     resettingQuota,
     showConfirmation,
     showNotification,

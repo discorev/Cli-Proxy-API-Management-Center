@@ -314,6 +314,24 @@
   color: var(--text-tertiary);
 }
 
+/* Usage-cache notes: cooldown, last refresh error, deferred refresh */
+.usageNotes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
+  margin-top: 6px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.usageNote {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary);
+}
+
 /* ---------- 动作 ---------- */
 
 .actions {

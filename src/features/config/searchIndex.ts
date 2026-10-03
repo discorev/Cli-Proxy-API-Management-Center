@@ -404,7 +404,15 @@ export const CONFIG_FIELD_SEARCH_INDEX: ConfigFieldSearchEntry[] = [
     labelKey: L('sections.network.routing_strategy'),
     hintKey: L('sections.network.routing_strategy_hint'),
     yamlKeys: ['routing', 'strategy'],
-    keywords: ['round-robin', 'weighted-round-robin', 'wrr', 'fill-first'],
+    keywords: ['round-robin', 'weighted-round-robin', 'wrr', 'fill-first', 'intelligent-fill'],
+  },
+  {
+    fieldId: 'resetCreditsAutoApply',
+    sectionId: 'network',
+    labelKey: L('sections.network.reset_credits_auto_apply'),
+    hintKey: L('sections.network.reset_credits_auto_apply_desc'),
+    yamlKeys: ['reset-credits', 'auto-apply'],
+    keywords: ['reset-credits', 'auto-apply', 'codex', 'claude'],
   },
   {
     fieldId: 'disableImageGeneration',

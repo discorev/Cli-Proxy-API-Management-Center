@@ -6,24 +6,36 @@ import {
   normalizeCodexAccountCredits,
 } from '@/features/quota/providers/codex/data';
 import type { CodexQuotaState, CodexUsagePayload } from '@/types';
-import { apiCallApi, type ApiCallRequest, type ApiCallResult } from '@/services/api';
-import {
-  CODEX_RATE_LIMIT_RESET_CREDITS_URL,
-  CODEX_SUBSCRIPTION_URL,
-  CODEX_USAGE_URL,
-  normalizeCodexResetCreditsPayload,
-  parseCodexUsagePayload,
-} from '@/utils/quota';
+import { apiCallApi, apiClient } from '@/services/api';
+import { normalizeCodexResetCreditsPayload, parseCodexUsagePayload } from '@/utils/quota';
 
 const t = ((key: string) => key) as TFunction;
 const originalApiCallRequest = apiCallApi.request;
+const originalGet = apiClient.get.bind(apiClient);
 
-const result = (statusCode: number, body: unknown = null): ApiCallResult => ({
-  statusCode,
-  header: {},
-  bodyText: body === null ? '' : JSON.stringify(body),
-  body,
-});
+/** Serves one cached usage entry; any direct upstream call fails the test. */
+const serveUsage = (raw: Record<string, unknown>, resets: unknown = null) => {
+  const requests: { url: string; params?: unknown }[] = [];
+  apiCallApi.request = async () => {
+    throw new Error('Codex quota must not call upstream through api-call');
+  };
+  apiClient.get = (async (url: string, config?: { params?: unknown }) => {
+    requests.push({ url, params: config?.params });
+    return [
+      {
+        auth_index: 'codex:1',
+        auth_id: 'codex.json',
+        provider: 'codex',
+        raw,
+        resets,
+        fetched_at: '2026-10-02T10:00:00Z',
+        next_fetch_at: '2026-10-02T10:03:00Z',
+        last_error: '',
+      },
+    ];
+  }) as typeof apiClient.get;
+  return requests;
+};
 
 const CURRENT_CODEX_USAGE_PAYLOAD: CodexUsagePayload = {
   plan_type: 'pro',
@@ -64,6 +76,7 @@ const CURRENT_CODEX_USAGE_PAYLOAD: CodexUsagePayload = {
 
 afterEach(() => {
   apiCallApi.request = originalApiCallRequest;
+  apiClient.get = originalGet;
 });
 
 describe('Codex current usage payload', () => {
@@ -134,21 +147,17 @@ describe('Codex account credits', () => {
     });
   });
 
-  test('reads credits from the existing usage request and forwards them into quota state', async () => {
-    const requests: ApiCallRequest[] = [];
-    apiCallApi.request = async (payload) => {
-      requests.push(payload);
-      if (payload.url === CODEX_USAGE_URL) {
-        return result(200, {
+  test('reads credits from the cached usage body and forwards them into quota state', async () => {
+    const requests = serveUsage(
+      {
+        usage: {
           ...CURRENT_CODEX_USAGE_PAYLOAD,
           credits: { has_credits: true, unlimited: false, balance: '8.75' },
-        });
-      }
-      if (payload.url === CODEX_RATE_LIMIT_RESET_CREDITS_URL) {
-        return result(200, { available_count: 1, credits: [] });
-      }
-      throw new Error(`Unexpected URL: ${payload.url}`);
-    };
+        },
+        reset_credits: { available_count: 1, credits: [] },
+      },
+      { credits: [{ id: 'c1', expires_at: '2026-10-03T12:00:00Z' }] }
+    );
 
     const data = await CODEX_CONFIG.fetchQuota(
       { name: 'codex.json', type: 'codex', auth_index: 'codex:1' },
@@ -158,71 +167,98 @@ describe('Codex account credits', () => {
     expect(state.creditBalance).toBe('8.75');
     expect(state.creditsUnlimited).toBeFalse();
     expect(state.rateLimitResetCreditsAvailableCount).toBe(1);
-    expect(requests.filter((request) => request.url === CODEX_USAGE_URL)).toHaveLength(1);
+    expect(requests).toEqual([{ url: '/credentials/usage', params: { auth_index: 'codex:1' } }]);
   });
 });
 
-describe('Codex live subscription renewal', () => {
-  test('prefers the live active_until and sends the encoded account ID', async () => {
-    const requests: ApiCallRequest[] = [];
-    apiCallApi.request = async (payload) => {
-      requests.push(payload);
-      if (payload.url === CODEX_USAGE_URL) return result(200, CURRENT_CODEX_USAGE_PAYLOAD);
-      if (payload.url === CODEX_RATE_LIMIT_RESET_CREDITS_URL) {
-        return result(200, { available_count: 0, credits: [] });
-      }
-      if (payload.url.startsWith(CODEX_SUBSCRIPTION_URL)) {
-        return result(200, { active_until: '2026-10-03T13:27:01Z' });
-      }
-      throw new Error(`Unexpected URL: ${payload.url}`);
-    };
+describe('Codex reset availability comes from the backend inventory', () => {
+  const staleRaw = {
+    usage: CURRENT_CODEX_USAGE_PAYLOAD,
+    reset_credits: {
+      available_count: 2,
+      credits: [
+        {
+          id: 'stale',
+          reset_type: 'codex_rate_limits',
+          status: 'available',
+          granted_at: '2026-10-01T12:00:00Z',
+          expires_at: '2026-10-03T12:00:00Z',
+        },
+      ],
+    },
+  };
+  const file = { name: 'codex.json', type: 'codex', auth_index: 'codex:1' };
+
+  test('stale raw reset credits with resets: null are unknown and not spendable', async () => {
+    serveUsage(staleRaw, null);
+    const state = CODEX_CONFIG.buildSuccessState(await CODEX_CONFIG.fetchQuota(file, t));
+    expect(state.resetInventoryKnown).toBeFalse();
+    expect(state.rateLimitResetCreditsAvailableCount).toBeNull();
+    expect(state.rateLimitResetCreditsApplicableAvailableCount).toBeNull();
+    expect(state.rateLimitResetCredits).toEqual([]);
+    expect(CODEX_CONFIG.canResetQuota?.(state)).toBeFalse();
+  });
+
+  test('the inventory decides; the raw body only adds granted-at', async () => {
+    serveUsage(staleRaw, {
+      credits: [{ id: 'stale', expires_at: '2026-10-03T12:00:00Z' }],
+    });
+    const state = CODEX_CONFIG.buildSuccessState(await CODEX_CONFIG.fetchQuota(file, t));
+    expect(state.rateLimitResetCreditsAvailableCount).toBe(1);
+    expect(state.rateLimitResetCredits).toEqual([
+      {
+        id: 'stale',
+        status: 'available',
+        grantedAt: '2026-10-01T12:00:00Z',
+        expiresAt: '2026-10-03T12:00:00Z',
+      },
+    ]);
+    expect(CODEX_CONFIG.canResetQuota?.(state)).toBeTrue();
+
+    // An empty inventory (credits omitted) is known: zero, not unknown.
+    serveUsage(staleRaw, {});
+    const empty = CODEX_CONFIG.buildSuccessState(await CODEX_CONFIG.fetchQuota(file, t));
+    expect(empty.resetInventoryKnown).toBeTrue();
+    expect(empty.rateLimitResetCreditsAvailableCount).toBe(0);
+    expect(CODEX_CONFIG.canResetQuota?.(empty)).toBeFalse();
+  });
+});
+
+describe('Codex subscription renewal from the usage cache', () => {
+  test('prefers the cached subscription active_until', async () => {
+    serveUsage({
+      usage: CURRENT_CODEX_USAGE_PAYLOAD,
+      subscription: { active_until: '2026-10-03T13:27:01Z' },
+      reset_credits: { available_count: 0, credits: [] },
+    });
 
     const quota = await CODEX_CONFIG.fetchQuota(
       {
         name: 'codex.json',
         type: 'codex',
         auth_index: 'codex:1',
-        metadata: { chatgpt_account_id: 'account/id + space' },
         chatgpt_subscription_active_until: '2026-09-03T13:27:01Z',
       },
       t
     );
 
     expect(quota.subscriptionActiveUntil).toBe('2026-10-03T13:27:01Z');
-    const subscriptionRequest = requests.find((request) =>
-      request.url.startsWith(CODEX_SUBSCRIPTION_URL)
-    );
-    expect(subscriptionRequest?.url).toBe(
-      `${CODEX_SUBSCRIPTION_URL}?account_id=account%2Fid%20%2B%20space`
-    );
-    expect(subscriptionRequest?.authIndex).toBe('codex:1');
-    expect(subscriptionRequest?.header?.Authorization).toBe('Bearer $TOKEN$');
-    expect(subscriptionRequest?.header?.['Chatgpt-Account-Id']).toBe('account/id + space');
   });
 
-  test('falls back to the credential date when the subscription probe fails', async () => {
-    apiCallApi.request = async (payload) => {
-      if (payload.url === CODEX_USAGE_URL) return result(200, CURRENT_CODEX_USAGE_PAYLOAD);
-      if (payload.url === CODEX_RATE_LIMIT_RESET_CREDITS_URL) {
-        return result(200, { available_count: 0, credits: [] });
-      }
-      if (payload.url.startsWith(CODEX_SUBSCRIPTION_URL)) {
-        return result(503, { error: 'temporarily unavailable' });
-      }
-      throw new Error(`Unexpected URL: ${payload.url}`);
-    };
+  test('falls back to the credential date when no subscription body is cached', async () => {
+    serveUsage({ usage: CURRENT_CODEX_USAGE_PAYLOAD });
 
     const quota = await CODEX_CONFIG.fetchQuota(
       {
         name: 'codex.json',
         type: 'codex',
-        auth_index: 'codex:2',
-        chatgpt_account_id: 'account-2',
+        auth_index: 'codex:1',
         chatgpt_subscription_active_until: '2026-09-03T13:27:01Z',
       },
       t
     );
 
     expect(quota.subscriptionActiveUntil).toBe('2026-09-03T13:27:01Z');
+    expect(quota.rateLimitResetCreditsError).toBe('');
   });
 });

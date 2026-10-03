@@ -2,6 +2,25 @@
  * Quota management types.
  */
 
+import type { AnthropicResetGrantStatus } from '@/services/api/claudeResetGrants';
+
+/** Backend usage-cache state for a Claude or Codex credential (times in epoch ms). */
+export interface QuotaUsageMeta {
+  fetchedAtMs: number | null;
+  nextFetchAtMs: number | null;
+  cooldownUntilMs: number | null;
+  lastError: string;
+  /**
+   * The explicit refresh or reset that produced this state moved `fetchedAtMs`
+   * forward, so `lastError` describes an ancillary failure, not a failed fetch.
+   */
+  fetchAdvanced: boolean;
+  /** The backend has never fetched usage for this credential. */
+  notFetched: boolean;
+  /** Set when an explicit refresh or reset was answered from cache. */
+  deferredUntilMs: number | null;
+}
+
 // Theme types
 export type ThemeColors = { bg: string; text: string; border?: string };
 export type TypeColorSet = { light: ThemeColors; dark?: ThemeColors };
@@ -178,6 +197,9 @@ export interface ClaudeQuotaState {
   windows: ClaudeQuotaWindow[];
   extraUsage?: ClaudeExtraUsage | null;
   planType?: string | null;
+  /** Parsed from the backend's reset inventory (entry.resets); null when absent or malformed. */
+  resetGrants?: AnthropicResetGrantStatus | null;
+  usage?: QuotaUsageMeta;
   error?: string;
   errorStatus?: number;
 }
@@ -246,10 +268,16 @@ export interface CodexQuotaState {
   subscriptionActiveUntil?: string | number | null;
   creditBalance?: string | null;
   creditsUnlimited?: boolean;
+  /**
+   * False when the backend sent no reset inventory: the count is unknown ('--')
+   * and Reset is disabled. Undefined only for states built outside the usage cache.
+   */
+  resetInventoryKnown?: boolean;
   rateLimitResetCreditsAvailableCount?: number | null;
   rateLimitResetCreditsApplicableAvailableCount?: number | null;
   rateLimitResetCredits?: CodexRateLimitResetCredit[];
   rateLimitResetCreditsError?: string;
+  usage?: QuotaUsageMeta;
   error?: string;
   errorStatus?: number;
 }
