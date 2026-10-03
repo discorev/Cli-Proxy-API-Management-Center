@@ -104,18 +104,7 @@ export const ANTIGRAVITY_REQUEST_HEADERS = {
   'User-Agent': ANTIGRAVITY_USER_AGENT,
 };
 
-// Claude API configuration
-export const CLAUDE_PROFILE_URL = 'https://api.anthropic.com/api/oauth/profile';
-
-export const CLAUDE_USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
-
-export const CLAUDE_REQUEST_HEADERS = {
-  'User-Agent': 'claude-cli/2.1.280 (external, cli)',
-  Authorization: 'Bearer $TOKEN$',
-  'Content-Type': 'application/json',
-  'anthropic-beta': 'oauth-2025-04-20',
-};
-
+// Claude usage windows (bodies come from the backend usage cache)
 export const CLAUDE_USAGE_WINDOW_KEYS = [
   { key: 'five_hour', id: 'five-hour', labelKey: 'claude_quota.five_hour' },
   { key: 'seven_day', id: 'seven-day', labelKey: 'claude_quota.seven_day' },
@@ -129,20 +118,6 @@ export const CLAUDE_USAGE_WINDOW_KEYS = [
   { key: 'seven_day_cowork', id: 'seven-day-cowork', labelKey: 'claude_quota.seven_day_cowork' },
   { key: 'iguana_necktie', id: 'seven-day-fable', labelKey: 'claude_quota.seven_day_fable' },
 ] as const;
-
-// Codex API configuration
-export const CODEX_USAGE_URL = 'https://chatgpt.com/backend-api/wham/usage';
-export const CODEX_SUBSCRIPTION_URL = 'https://chatgpt.com/backend-api/subscriptions';
-export const CODEX_RATE_LIMIT_RESET_CREDITS_URL =
-  'https://chatgpt.com/backend-api/wham/rate-limit-reset-credits';
-export const CODEX_RATE_LIMIT_RESET_CREDITS_CONSUME_URL =
-  'https://chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume';
-
-export const CODEX_REQUEST_HEADERS = {
-  Authorization: 'Bearer $TOKEN$',
-  'Content-Type': 'application/json',
-  'User-Agent': 'codex-tui/0.149.1 (Mac OS 26.5.2; arm64) iTerm.app/3.6.11 (codex-tui; 0.149.1)',
-};
 
 // Kimi API configuration
 export const KIMI_USAGE_URL = 'https://api.kimi.com/coding/v1/usages';

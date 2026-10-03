@@ -16,12 +16,14 @@ import { useTranslation } from 'react-i18next';
 import { IconRefreshCw } from '@/components/ui/icons';
 import { buildResetDisplay, resolveQuotaErrorMessage, type ResetDisplay } from '@/utils/quota';
 import { useNow } from '@/hooks/useNow';
+import type { ClaudeQuotaState, QuotaUsageMeta } from '@/types';
 import { QUOTA_ADAPTERS, type QuotaCardState } from '../providers';
 import { isQuotaRefreshDisabled, type QuotaFileEntry } from '../logic';
 import { useClaudeResetGrants } from '../providers/claude/ClaudeResetGrants';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../resetSchedule';
 import { toQuotaRowModel } from '../rowModel';
 import { quotaMeterLevel, type QuotaMeterLevel } from '../meterLevel';
+import { QuotaUsageNotes } from './QuotaUsageNotes';
 import styles from './QuotaRow.module.scss';
 
 export type QuotaRowProps = {
@@ -82,11 +84,12 @@ export function QuotaRow(props: QuotaRowProps) {
   const loading = status === 'loading';
   const claudeReset = useClaudeResetGrants(
     entry.file,
-    entry.type === 'claude' && status !== 'idle',
-    !canRefresh || loading || resetting,
-    quota,
-    onRefresh
+    entry.type === 'claude' ? (quota as ClaudeQuotaState | undefined) : undefined,
+    !canRefresh || loading || resetting
   );
+  // Only the usage-cache providers (Claude, Codex) carry this.
+  const usage =
+    status === 'success' ? (quota as { usage?: QuotaUsageMeta } | undefined)?.usage : undefined;
 
   // Captured at mount, like the card before it: the cascade plays once on first
   // paint and never replays when a tab switch remounts the list.
@@ -190,7 +193,9 @@ export function QuotaRow(props: QuotaRowProps) {
                   </span>
                 </div>
                 <span className={styles.creditsValue}>
-                  <span className={styles.creditsCount}>{model.resetCredits.available}</span>
+                  <span className={styles.creditsCount}>
+                    {model.resetCredits.available ?? '--'}
+                  </span>
                   {t('quota_management.manual_resets_unit')}
                 </span>
                 <ResetText display={creditDisplay} soon={nextCredit?.id === urgentRowId} />
@@ -207,17 +212,21 @@ export function QuotaRow(props: QuotaRowProps) {
                 <span className={styles.creditsValue}>
                   <span className={styles.creditsCount}>{claudeReset.count ?? '--'}</span>
                 </span>
-                {claudeReset.message && (
-                  <span role="status" className={styles.creditsError}>
-                    {t(`claude_reset.${claudeReset.message}`)}
-                  </span>
-                )}
               </div>
             )}
           </div>
         ) : (
           <div className={styles.message}>
             {model?.message ?? t('quota_management.row_not_loaded')}
+          </div>
+        )}
+        {usage && (
+          <div className={styles.usageNotes}>
+            <QuotaUsageNotes
+              usage={usage}
+              noteClassName={styles.usageNote}
+              errorClassName={styles.creditsError}
+            />
           </div>
         )}
       </div>
@@ -229,10 +238,10 @@ export function QuotaRow(props: QuotaRowProps) {
             className={styles.action}
             onClick={claudeReset.confirm}
             disabled={claudeReset.blocked}
-            title={t(`claude_reset.${claudeReset.buttonLabel}`)}
+            title={t('claude_reset.use')}
           >
             <IconRefreshCw size={12} className={claudeReset.busy ? styles.spinning : undefined} />
-            {t(`claude_reset.${claudeReset.buttonLabel}`)}
+            {t('claude_reset.use')}
           </button>
         )}
         {showReset && (
@@ -249,7 +258,11 @@ export function QuotaRow(props: QuotaRowProps) {
         )}
         <button
           type="button"
-          className={status === 'idle' ? `${styles.action} ${styles.actionPrimary}` : styles.action}
+          className={
+            status === 'idle' || usage?.notFetched
+              ? `${styles.action} ${styles.actionPrimary}`
+              : styles.action
+          }
           onClick={onRefresh}
           disabled={isQuotaRefreshDisabled(canRefresh, loading, resetting || claudeReset.busy)}
           title={t('auth_files.quota_refresh_hint')}

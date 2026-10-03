@@ -10,7 +10,7 @@ import type { TFunction } from 'i18next';
 import { useQuotaStore } from '@/stores';
 import type { AuthFileItem } from '@/types';
 import type { QuotaBodyProps } from '../types';
-import type { QuotaProviderType, QuotaStore } from './types';
+import type { QuotaProviderType, QuotaResetOutcome, QuotaStore } from './types';
 import { ANTIGRAVITY_CONFIG } from './antigravity/data';
 import { AntigravityQuotaBody } from './antigravity/AntigravityQuotaBody';
 import { CLAUDE_CONFIG } from './claude/data';
@@ -38,8 +38,13 @@ export interface QuotaAdapter {
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
+  refreshQuota?: (file: AuthFileItem, t: TFunction, previous?: QuotaCardState) => Promise<unknown>;
   enrichQuota?: (file: AuthFileItem, data: unknown, t: TFunction) => Promise<unknown>;
-  resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
+  resetQuota?: (
+    file: AuthFileItem,
+    t: TFunction,
+    previous?: QuotaCardState
+  ) => Promise<QuotaResetOutcome<unknown>>;
   canResetQuota?: (quota: QuotaCardState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, QuotaCardState>;
   storeSetter: keyof QuotaStore;
@@ -65,6 +70,20 @@ export const QUOTA_ADAPTERS: Record<QuotaProviderType, QuotaAdapter> = {
 export type QuotaMapUpdater = (
   updater: (prev: Record<string, QuotaCardState>) => Record<string, QuotaCardState>
 ) => void;
+
+type QuotaLoader = (
+  file: AuthFileItem,
+  t: TFunction,
+  previous?: QuotaCardState
+) => Promise<unknown>;
+
+/** Explicit refresh path: the usage-cache providers ask the backend for fresh data. */
+export const getQuotaRefresher = (adapter: QuotaAdapter): QuotaLoader =>
+  adapter.refreshQuota ?? adapter.fetchQuota;
+
+/** Page load reads (the usage cache for Claude/Codex); Refresh all uses the refresher. */
+export const selectQuotaLoader = (adapter: QuotaAdapter, refresh = false): QuotaLoader =>
+  refresh ? getQuotaRefresher(adapter) : adapter.fetchQuota;
 
 /** 取 adapter 对应的 store setter（getState 直读，不建立订阅）。 */
 export const getQuotaSetter = (adapter: QuotaAdapter): QuotaMapUpdater =>

@@ -1,6 +1,7 @@
 export type PayloadParamValueType = 'string' | 'number' | 'boolean' | 'json';
 export type DisableImageGenerationMode = 'false' | 'true' | 'chat' | 'passthrough';
-export type RoutingStrategy = 'round-robin' | 'weighted-round-robin' | 'fill-first';
+export type RoutingStrategy =
+  'round-robin' | 'weighted-round-robin' | 'fill-first' | 'intelligent-fill';
 export type PluginStoreAuthType = 'none' | 'bearer' | 'basic' | 'header' | 'github-token';
 export type PluginStoreAuthApplyTo = 'registry' | 'metadata' | 'artifact';
 export type PayloadParamValidationErrorCode =
@@ -191,6 +192,8 @@ export type VisualConfigValues = {
   /** OAuth-only: oauth.providers.antigravity.antigravity-credits. */
   quotaAntigravityCredits: boolean;
   routingStrategy: RoutingStrategy;
+  /** reset-credits.auto-apply: spend banked Codex/Claude resets automatically. */
+  resetCreditsAutoApply: boolean;
   routingSessionAffinity: boolean;
   routingSessionAffinityTTL: string;
   wsAuth: boolean;
@@ -293,6 +296,7 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   quotaSwitchPreviewModel: false,
   quotaAntigravityCredits: false,
   routingStrategy: 'round-robin',
+  resetCreditsAutoApply: false,
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
   wsAuth: true,

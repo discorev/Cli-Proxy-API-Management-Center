@@ -19,6 +19,7 @@ import { resolveTimeZoneLabel } from '@/utils/time/timezone';
 import { formatDateTimeValue } from '@/utils/format';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
+import { QuotaUsageNotes } from '../../components/QuotaUsageNotes';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId, resetCreditRowId } from '../../resetSchedule';
 import type { QuotaBodyProps, QuotaClassMap } from '../../types';
@@ -47,6 +48,9 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
   const creditBalance = quota.creditBalance ?? null;
   const creditsUnlimited = quota.creditsUnlimited === true;
   const rateLimitResetCreditsAvailableCount = quota.rateLimitResetCreditsAvailableCount ?? null;
+  // No backend inventory: availability is unknown, shown as '--' rather than hidden.
+  const showResetCreditsCount =
+    rateLimitResetCreditsAvailableCount !== null || quota.resetInventoryKnown === false;
   const rateLimitResetCredits = quota.rateLimitResetCredits ?? [];
   const rateLimitResetCreditsError = quota.rateLimitResetCreditsError ?? '';
 
@@ -88,7 +92,7 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
         expiryDisplay ||
         creditsUnlimited ||
         creditBalance !== null ||
-        rateLimitResetCreditsAvailableCount !== null) && (
+        showResetCreditsCount) && (
         <div className={classes.codexPlan}>
           {planLabel && (
             <span className={classes.codexPlanItem}>
@@ -115,11 +119,11 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
               </span>
             </span>
           )}
-          {rateLimitResetCreditsAvailableCount !== null && (
+          {showResetCreditsCount && (
             <span className={classes.codexPlanItem}>
               <span className={classes.codexPlanLabel}>{t('codex_quota.reset_credits_label')}</span>
               <span className={classes.codexPlanValue}>
-                {rateLimitResetCreditsAvailableCount.toString()}
+                {rateLimitResetCreditsAvailableCount?.toString() ?? '--'}
               </span>
             </span>
           )}
@@ -172,7 +176,11 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
         </div>
       ) : null}
       {windows.length === 0 ? (
-        <div className={classes.quotaMessage}>{t('codex_quota.empty_windows')}</div>
+        <div className={classes.quotaMessage}>
+          {t(
+            quota.usage?.notFetched ? 'credential_usage.not_fetched' : 'codex_quota.empty_windows'
+          )}
+        </div>
       ) : (
         windows.map((window, index) => {
           const used = window.usedPercent;
@@ -207,6 +215,11 @@ export function CodexQuotaBody({ quota, classes }: QuotaBodyProps<CodexQuotaStat
           );
         })
       )}
+      <QuotaUsageNotes
+        usage={quota.usage}
+        noteClassName={classes.quotaMessage}
+        errorClassName={classes.codexResetCreditsError}
+      />
     </>
   );
 }

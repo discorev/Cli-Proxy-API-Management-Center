@@ -212,7 +212,8 @@
     "ws_auth_enable": "啟用 /ws/* 驗證",
     "routing_strategy_round_robin": "round-robin（輪詢）",
     "routing_strategy_weighted_round_robin": "weighted-round-robin（加權輪詢）",
-    "routing_strategy_fill_first": "fill-first（優先填充）"
+    "routing_strategy_fill_first": "fill-first（優先填充）",
+    "routing_strategy_intelligent_fill": "intelligent-fill（最早重置優先）"
   },
   "auth_files": {
     "title": "驗證檔案管理",
@@ -1406,6 +1407,10 @@
           "strategy_round_robin": "輪詢（Round Robin）",
           "strategy_weighted_round_robin": "加權輪詢（Weighted Round Robin）",
           "strategy_fill_first": "填充優先（Fill First）",
+          "strategy_intelligent_fill": "智慧填充（最早重置優先）",
+          "strategy_intelligent_fill_hint": "優先使用最早重置的訂閱。",
+          "reset_credits_auto_apply": "自動使用儲備重置",
+          "reset_credits_auto_apply_desc": "在儲備的 Codex 與 Claude 重置過期作廢前自動使用",
           "session_affinity_ttl": "會話黏性 TTL",
           "force_model_prefix": "強制模型前綴",
           "force_model_prefix_desc": "未帶前綴的模型請求只使用無前綴憑證",
@@ -2206,29 +2211,36 @@
     }
   },
   "claude_reset": {
-    "retry_confirm": "使用原請求 ID 重試「{{name}}」結果未知的重置？可能已消耗一次重置。請在 10 分鐘內重試；請勿重新載入頁面或在其他分頁發起新請求。",
     "remaining": "剩餘重置次數",
     "title": "儲備重置次數",
-    "scope": "使用有限的重置權益清除符合條件的 Claude 用量視窗。僅在確定要消耗一次重置時確認。復原僅限目前分頁和工作階段；結果未知時，請勿重新載入頁面或使用其他分頁。",
     "loading": "載入中…",
-    "read_error": "無法讀取重置權益，未提交重置。",
-    "blocked": "未提交重置：無法驗證資格、帳戶身分或工作階段。請重新整理後檢查。",
-    "unknown": "結果未知，可能已消耗一次重置。請在 10 分鐘內使用相同請求 ID 重試，不要在其他位置發起新的重置。",
-    "expired": "重試視窗已過期，目前工作階段已阻止進一步重置。請先檢查 Claude 帳戶狀態。",
-    "retry": "重試同一請求",
     "empty": "沒有儲備重置權益。",
     "count": "剩餘 {{left}} / {{total}} 次重置",
     "ends": "到期：{{date}}",
     "use": "重置額度",
     "confirm": "確認重置",
-    "confirm_text": "確定消耗一次重置，清除「{{name}}」符合條件的用量限制？重置次數有限。",
-    "reset": "已重置用量限制。",
-    "already_used": "該權益已使用。",
-    "not_limited": "未重置：帳戶目前未達到限制。",
-    "cooldown": "未重置：仍在冷卻期。",
-    "ineligible": "此帳戶不符合資格。",
-    "unavailable": "重置暫不可用。",
-    "rate_limited": "請求過於頻繁。",
-    "auth_error": "授權遭拒。"
+    "confirm_text": "確定消耗一次重置，清除「{{name}}」符合條件的用量限制？重置次數有限。"
+  },
+  "credential_usage": {
+    "not_fetched": "尚未取得",
+    "cooldown_note": "用量查詢遭服務商限流 — {{time}} 後重試",
+    "deferred_note": "{{time}} 後可取得更新資料",
+    "last_error": "上次重新整理失敗：{{message}}",
+    "last_warning": "上次重新整理警告：{{message}}",
+    "reset_outcome": {
+      "reset": "已重置用量限制。",
+      "already_used": "該權益已使用。",
+      "not_limited": "未重置：帳戶目前未達到限制。",
+      "cooldown": "未重置：仍在冷卻期。",
+      "ineligible": "此帳戶不符合資格。",
+      "unavailable": "重置暫不可用。",
+      "rate_limited": "請求過於頻繁。",
+      "auth_error": "授權遭拒。",
+      "unknown": "結果未知。請等待最新用量資料後再嘗試。",
+      "refresh_pending": "未送出 — 上一次重置嘗試仍在等待最新用量資料。請於 {{time}} 後重試。",
+      "refresh_pending_later": "未送出 — 上一次重置嘗試仍在等待最新用量資料。請稍後重試。",
+      "in_flight": "此憑證已有重置正在進行。",
+      "refused": "未送出重置：目前沒有可用的重置。"
+    }
   }
 }

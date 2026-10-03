@@ -1,18 +1,8 @@
 // Upstream cedar_ember contract, following opencodex anthropic-reset-grants.
-import { apiCallApi } from './apiCall';
-import { CLAUDE_REQUEST_HEADERS } from '@/utils/quota/constants';
-
-export const ANTHROPIC_API_ORIGIN = 'https://api.anthropic.com';
-export const ANTHROPIC_RESET_GRANT_PROGRAM = 'cedar_ember';
-export const ANTHROPIC_RESET_GRANT_STATUS_PATH = '/api/oauth/usage?cedar_ember=1&skip_spend=1';
-export const ANTHROPIC_PROFILE_PATH = '/api/oauth/profile';
-/** Same bound the Claude Code client uses for the claim. */
-export const ANTHROPIC_RESET_GRANT_REDEEM_TIMEOUT_MS = 25_000;
+// The backend parses the block into the usage entry's `resets` (same fields) and
+// spends grants; the dashboard only parses it to show and pick a grant.
 
 export const ANTHROPIC_RESET_GRANT_ID_RE = /^[a-z0-9_-]{1,40}$/;
-export const ANTHROPIC_RESET_REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
-export const ORGANIZATION_UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Usage windows a grant can clear. Others upstream may add are dropped. */
 export const ANTHROPIC_RESET_WINDOWS = [
@@ -21,20 +11,6 @@ export const ANTHROPIC_RESET_WINDOWS = [
   'seven_day_overage_included',
 ] as const;
 export type AnthropicResetWindow = (typeof ANTHROPIC_RESET_WINDOWS)[number];
-
-/** Terminal answers the claim endpoint can give. */
-export const ANTHROPIC_RESET_RESULTS = [
-  'reset',
-  'already_used',
-  'not_limited',
-  'cooldown',
-  'ineligible',
-  'unavailable',
-] as const;
-export type AnthropicResetUpstreamResult = (typeof ANTHROPIC_RESET_RESULTS)[number];
-/** Upstream results plus the two HTTP refusals that prove nothing was spent. */
-export type AnthropicResetSettledCode =
-  AnthropicResetUpstreamResult | 'rate_limited' | 'auth_error';
 
 export interface AnthropicResetGrant {
   id: string;
@@ -58,24 +34,6 @@ export interface AnthropicResetGrantStatus {
   nextGrantId: string | null;
   weeklyResetsAt: string | null;
   cooldownUntil: string | null;
-}
-
-export type AnthropicResetGrantErrorCode = 'auth' | 'upstream' | 'malformed';
-
-/** A read failure. `message` is fixed text; upstream detail is never attached. */
-export class AnthropicResetGrantError extends Error {
-  constructor(readonly code: AnthropicResetGrantErrorCode) {
-    super(`Anthropic reset-grant read failed (${code})`);
-    this.name = 'AnthropicResetGrantError';
-  }
-}
-
-/** The claim was sent (or may have been) and no terminal answer came back. */
-export class AnthropicResetGrantUnknownOutcome extends Error {
-  constructor() {
-    super('Anthropic reset-grant claim outcome is unknown');
-    this.name = 'AnthropicResetGrantUnknownOutcome';
-  }
 }
 
 const KNOWN_INELIGIBLE_REASONS = new Set([
@@ -233,80 +191,4 @@ export function anthropicResetGrantBlocker(
   if (grant.resetsLeft <= 0) return 'exhausted';
   if (grant.useRequiresLimit && !status.atLimit) return 'not_limited';
   return null;
-}
-
-async function readAccount(authIndex: string, path: string): Promise<Record<string, unknown>> {
-  const response = await apiCallApi.request(
-    {
-      authIndex,
-      method: 'GET',
-      url: ANTHROPIC_API_ORIGIN + path,
-      header: { ...CLAUDE_REQUEST_HEADERS },
-    },
-    { timeout: 12000 }
-  );
-  if (response.statusCode < 200 || response.statusCode >= 300 || !isRecord(response.body)) {
-    throw new AnthropicResetGrantError('upstream');
-  }
-  return response.body;
-}
-
-export async function readClaudeResetGrants(authIndex: string) {
-  const body = await readAccount(authIndex, ANTHROPIC_RESET_GRANT_STATUS_PATH);
-  const status = parseAnthropicResetGrantStatus(body.cedar_ember);
-  if (!status) throw new AnthropicResetGrantError('malformed');
-  return status;
-}
-
-export async function readClaudeOrganization(authIndex: string) {
-  const body = await readAccount(authIndex, ANTHROPIC_PROFILE_PATH);
-  const uuid = isRecord(body.organization) ? body.organization.uuid : undefined;
-  if (typeof uuid !== 'string' || !ORGANIZATION_UUID_RE.test(uuid)) {
-    throw new AnthropicResetGrantError('malformed');
-  }
-  return uuid.toLowerCase();
-}
-
-export async function claimClaudeResetGrant(
-  authIndex: string,
-  organization: string,
-  grantId: string,
-  requestId: string
-): Promise<AnthropicResetSettledCode> {
-  if (
-    !ORGANIZATION_UUID_RE.test(organization) ||
-    !ANTHROPIC_RESET_GRANT_ID_RE.test(grantId) ||
-    !ANTHROPIC_RESET_REQUEST_ID_RE.test(requestId)
-  )
-    throw new AnthropicResetGrantError('malformed');
-  try {
-    const response = await apiCallApi.request(
-      {
-        authIndex,
-        method: 'POST',
-        url: `${ANTHROPIC_API_ORIGIN}/api/organizations/${organization}/reset_rate_limits`,
-        header: { ...CLAUDE_REQUEST_HEADERS },
-        data: JSON.stringify({
-          program: ANTHROPIC_RESET_GRANT_PROGRAM,
-          grant_id: grantId,
-          request_id: requestId,
-        }),
-      },
-      { timeout: ANTHROPIC_RESET_GRANT_REDEEM_TIMEOUT_MS }
-    );
-    if (response.statusCode === 429) return 'rate_limited';
-    if (response.statusCode === 401 || response.statusCode === 403) return 'auth_error';
-    const result = isRecord(response.body) ? response.body.result : undefined;
-    if (
-      response.statusCode >= 200 &&
-      response.statusCode < 300 &&
-      typeof result === 'string' &&
-      (ANTHROPIC_RESET_RESULTS as readonly string[]).includes(result)
-    ) {
-      return result as AnthropicResetUpstreamResult;
-    }
-  } catch {
-    /* The proxy may have sent the claim even if the management request failed. */
-  }
-  throw new AnthropicResetGrantUnknownOutcome();
 }

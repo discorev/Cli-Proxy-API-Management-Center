@@ -8,6 +8,7 @@ import type { ClaudeQuotaState } from '@/types';
 import { buildResetDisplay } from '@/utils/quota';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
+import { QuotaUsageNotes } from '../../components/QuotaUsageNotes';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
@@ -40,7 +41,11 @@ export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaSt
         </div>
       )}
       {windows.length === 0 ? (
-        <div className={classes.quotaMessage}>{t('claude_quota.empty_windows')}</div>
+        <div className={classes.quotaMessage}>
+          {t(
+            quota.usage?.notFetched ? 'credential_usage.not_fetched' : 'claude_quota.empty_windows'
+          )}
+        </div>
       ) : (
         windows.map((window, index) => {
           const used = window.usedPercent;
@@ -78,6 +83,11 @@ export function ClaudeQuotaBody({ quota, classes }: QuotaBodyProps<ClaudeQuotaSt
           );
         })
       )}
+      <QuotaUsageNotes
+        usage={quota.usage}
+        noteClassName={classes.quotaMessage}
+        errorClassName={classes.codexResetCreditsError}
+      />
     </>
   );
 }

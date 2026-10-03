@@ -1,6 +1,7 @@
 /**
- * Claude 额度数据层：用量窗口 + 套餐 + 额外用量。
- * React-free / SCSS-free —— 由 tests/claudeFableQuota.test.ts 直接消费。
+ * Claude quota data layer: usage windows, plan, extra usage and reset grants,
+ * parsed from the backend usage cache (never fetched from upstream here).
+ * React-free / SCSS-free; consumed directly by tests.
  */
 
 import type { TFunction } from 'i18next';
@@ -11,12 +12,13 @@ import type {
   ClaudeQuotaState,
   ClaudeQuotaWindow,
   ClaudeUsagePayload,
+  QuotaUsageMeta,
 } from '@/types';
-import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import {
-  CLAUDE_PROFILE_URL,
-  CLAUDE_USAGE_URL,
-  CLAUDE_REQUEST_HEADERS,
+  parseAnthropicResetGrantStatus,
+  type AnthropicResetGrantStatus,
+} from '@/services/api/claudeResetGrants';
+import {
   CLAUDE_USAGE_WINDOW_KEYS,
   claudePeriodHours,
   normalizeNumberValue,
@@ -24,17 +26,24 @@ import {
   parseClaudeUsagePayload,
   formatQuotaResetTime,
   resolveResetMs,
-  createStatusError,
   isClaudeFile,
   isDisabledAuthFile,
 } from '@/utils/quota';
-import { normalizeAuthIndex } from '@/utils/authIndex';
-import type { QuotaProviderData } from '../types';
+import type { QuotaProviderData, QuotaResetOutcome } from '../types';
+import {
+  loadUsageEntry,
+  resetUsageEntry,
+  type UsageCacheResult,
+  type UsageLoadMode,
+} from '../usageCache';
+import { claudeLiveRowId, overlayLiveWindows } from '../liveWindows';
 
 export type ClaudeQuotaData = {
   windows: ClaudeQuotaWindow[];
   extraUsage?: ClaudeExtraUsage | null;
   planType?: string | null;
+  resetGrants: AnthropicResetGrantStatus | null;
+  usage: QuotaUsageMeta;
 };
 
 const findFableUsageLimit = (payload: ClaudeUsagePayload) => {
@@ -154,61 +163,58 @@ export const resolveClaudePlanType = (profile: ClaudeProfileResponse | null): st
   return null;
 };
 
-const fetchClaudeQuota = async (file: AuthFileItem, t: TFunction): Promise<ClaudeQuotaData> => {
-  const rawAuthIndex = file['auth_index'] ?? file.authIndex;
-  const authIndex = normalizeAuthIndex(rawAuthIndex);
-  if (!authIndex) {
-    throw new Error(t('claude_quota.missing_auth_index'));
-  }
+/**
+ * Builds quota data from one cached entry. A missing usage body yields no windows;
+ * header-observed windows newer than the body update its usage rows.
+ * Grant status comes from the backend's parsed inventory (entry.resets), never the
+ * raw usage body, so a stale body cannot offer a claim.
+ */
+export const buildClaudeQuotaData = (
+  { entry, meta }: UsageCacheResult,
+  t: TFunction
+): ClaudeQuotaData => {
+  const payload = entry.raw.usage === undefined ? null : parseClaudeUsagePayload(entry.raw.usage);
+  return {
+    windows: payload
+      ? overlayLiveWindows(buildClaudeQuotaWindows(payload, t), entry, claudeLiveRowId)
+      : [],
+    extraUsage: payload?.extra_usage,
+    planType: resolveClaudePlanType(parseClaudeProfilePayload(entry.raw.profile)),
+    resetGrants: parseAnthropicResetGrantStatus(entry.resets?.body ?? null),
+    usage: meta,
+  };
+};
 
-  const [usageResult, profileResult] = await Promise.allSettled([
-    apiCallApi.request({
-      authIndex,
-      method: 'GET',
-      url: CLAUDE_USAGE_URL,
-      header: { ...CLAUDE_REQUEST_HEADERS },
-    }),
-    apiCallApi.request({
-      authIndex,
-      method: 'GET',
-      url: CLAUDE_PROFILE_URL,
-      header: { ...CLAUDE_REQUEST_HEADERS },
-    }),
-  ]);
+const loadClaudeQuota =
+  (mode: UsageLoadMode) =>
+  async (file: AuthFileItem, t: TFunction, previous?: ClaudeQuotaState): Promise<ClaudeQuotaData> =>
+    buildClaudeQuotaData(
+      await loadUsageEntry(file, t, 'claude_quota', mode, {
+        previousFetchedAtMs: previous?.usage?.fetchedAtMs,
+      }),
+      t
+    );
 
-  if (usageResult.status === 'rejected') {
-    throw usageResult.reason;
-  }
-
-  const result = usageResult.value;
-
-  if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
-  }
-
-  const payload = parseClaudeUsagePayload(result.body ?? result.bodyText);
-  if (!payload) {
-    throw new Error(t('claude_quota.empty_windows'));
-  }
-
-  const windows = buildClaudeQuotaWindows(payload, t);
-  const planType =
-    profileResult.status === 'fulfilled' &&
-    profileResult.value.statusCode >= 200 &&
-    profileResult.value.statusCode < 300
-      ? resolveClaudePlanType(
-          parseClaudeProfilePayload(profileResult.value.body ?? profileResult.value.bodyText)
-        )
-      : null;
-
-  return { windows, extraUsage: payload.extra_usage, planType };
+/** Spends the chosen reset grant through the backend and returns the refreshed card data. */
+export const resetClaudeGrant = async (
+  file: AuthFileItem,
+  grantId: string,
+  t: TFunction,
+  previous?: ClaudeQuotaState
+): Promise<QuotaResetOutcome<ClaudeQuotaData>> => {
+  const { code, result, nextFetchAtMs } = await resetUsageEntry(file, t, 'claude_quota', {
+    grantId,
+    previousFetchedAtMs: previous?.usage?.fetchedAtMs,
+  });
+  return { code, nextFetchAtMs, data: result ? buildClaudeQuotaData(result, t) : null };
 };
 
 export const CLAUDE_CONFIG: QuotaProviderData<ClaudeQuotaState, ClaudeQuotaData> = {
   type: 'claude',
   i18nPrefix: 'claude_quota',
   filterFn: (file) => isClaudeFile(file) && !isDisabledAuthFile(file),
-  fetchQuota: fetchClaudeQuota,
+  fetchQuota: loadClaudeQuota('cached'),
+  refreshQuota: loadClaudeQuota('refresh'),
   storeSelector: (state) => state.claudeQuota,
   storeSetter: 'setClaudeQuota',
   buildLoadingState: () => ({ status: 'loading', windows: [] }),
@@ -217,6 +223,8 @@ export const CLAUDE_CONFIG: QuotaProviderData<ClaudeQuotaState, ClaudeQuotaData>
     windows: data.windows,
     extraUsage: data.extraUsage,
     planType: data.planType,
+    resetGrants: data.resetGrants,
+    usage: data.usage,
   }),
   buildErrorState: (message, status) => ({
     status: 'error',

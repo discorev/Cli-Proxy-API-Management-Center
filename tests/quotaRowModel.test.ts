@@ -99,6 +99,19 @@ describe('toQuotaRowModel', () => {
     expect(model?.resetCredits?.available).toBe(3);
     // Spent credits are not upcoming capacity and must not be listed.
     expect(model?.resetCredits?.credits.map((credit) => credit.id)).toEqual(['c1']);
+
+    // No backend inventory: the row keeps the slot with an unknown count.
+    const unknown = toQuotaRowModel(
+      'codex',
+      {
+        ...quota,
+        resetInventoryKnown: false,
+        rateLimitResetCreditsAvailableCount: null,
+        rateLimitResetCredits: [],
+      },
+      t
+    );
+    expect(unknown?.resetCredits).toEqual({ available: null, credits: [] });
   });
 
   test('Devin windows are already remaining percent and keep their period', () => {

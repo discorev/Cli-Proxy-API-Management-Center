@@ -121,7 +121,11 @@ export function SectionNetwork({
             <FieldShell
               label={t('config_management.visual.sections.network.routing_strategy')}
               labelId={routingStrategyLabelId}
-              hint={t('config_management.visual.sections.network.routing_strategy_hint')}
+              hint={t(
+                values.routingStrategy === 'intelligent-fill'
+                  ? 'config_management.visual.sections.network.strategy_intelligent_fill_hint'
+                  : 'config_management.visual.sections.network.routing_strategy_hint'
+              )}
               hintId={routingStrategyHintId}
             >
               <Select
@@ -141,6 +145,10 @@ export function SectionNetwork({
                     value: 'fill-first',
                     label: t('config_management.visual.sections.network.strategy_fill_first'),
                   },
+                  {
+                    value: 'intelligent-fill',
+                    label: t('config_management.visual.sections.network.strategy_intelligent_fill'),
+                  },
                 ]}
                 id={`${routingStrategyLabelId}-select`}
                 disabled={disabled}
@@ -153,6 +161,17 @@ export function SectionNetwork({
                 }
               />
             </FieldShell>
+          </FieldAnchor>
+          <FieldAnchor fieldId="resetCreditsAutoApply">
+            <ToggleRow
+              title={t('config_management.visual.sections.network.reset_credits_auto_apply')}
+              description={t(
+                'config_management.visual.sections.network.reset_credits_auto_apply_desc'
+              )}
+              checked={values.resetCreditsAutoApply}
+              disabled={disabled}
+              onChange={(resetCreditsAutoApply) => onChange({ resetCreditsAutoApply })}
+            />
           </FieldAnchor>
           <FieldAnchor fieldId="disableImageGeneration">
             <FieldShell

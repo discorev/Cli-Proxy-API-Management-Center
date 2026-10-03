@@ -54,7 +54,8 @@ export interface QuotaRowResetCredit {
 }
 
 export interface QuotaRowResetCredits {
-  available: number;
+  /** Null when the backend sent no reset inventory (shown as '--'). */
+  available: number | null;
   credits: QuotaRowResetCredit[];
 }
 
@@ -83,6 +84,18 @@ const trimLabel = (value: string | null | undefined): string | null => {
 
 const EMPTY_MODEL: QuotaRowModel = { plan: null, planNote: null, windows: [], message: null };
 
+/** Usage-cache providers distinguish "never fetched" from "fetched, nothing usable". */
+const emptyUsageMessage = (
+  quota: ClaudeQuotaState | CodexQuotaState,
+  i18nPrefix: 'claude_quota' | 'codex_quota',
+  t: TFunction
+): string | null => {
+  if ((quota.windows ?? []).length > 0) return null;
+  return quota.usage?.notFetched
+    ? t('credential_usage.not_fetched')
+    : t(`${i18nPrefix}.empty_windows`);
+};
+
 /* ---------------------------------------------------------------- Claude */
 
 function claudeRowModel(quota: ClaudeQuotaState, t: TFunction): QuotaRowModel {
@@ -103,7 +116,7 @@ function claudeRowModel(quota: ClaudeQuotaState, t: TFunction): QuotaRowModel {
       resetAtMs: window.resetAtMs ?? null,
       periodHours: window.periodHours ?? null,
     })),
-    message: (quota.windows ?? []).length === 0 ? t('claude_quota.empty_windows') : null,
+    message: emptyUsageMessage(quota, 'claude_quota', t),
   };
 }
 
@@ -163,10 +176,11 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
         periodHours: window.periodHours ?? null,
       })),
     resetCredits:
-      availableCount === null || availableCount === undefined
+      (availableCount === null || availableCount === undefined) &&
+      quota.resetInventoryKnown !== false
         ? undefined
         : {
-            available: availableCount,
+            available: availableCount ?? null,
             credits: credits.map((credit, index) => {
               const atMs = parseIsoToMs(credit.expiresAt);
               return {
@@ -176,7 +190,7 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
               };
             }),
           },
-    message: (quota.windows ?? []).length === 0 ? t('codex_quota.empty_windows') : null,
+    message: emptyUsageMessage(quota, 'codex_quota', t),
   };
 }
 

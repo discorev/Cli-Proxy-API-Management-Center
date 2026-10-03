@@ -1,5 +1,23 @@
 # Repository Guidelines
 
+## Repository
+
+**discorev/Cli-Proxy-API-Management-Center** (`origin`), a fork of router-for-me/Cli-Proxy-API-Management-Center. Releases are tagged `vX.Y.Z-fork.N`. Every proxy-fork user (discorev/CLIProxyAPI) auto-updates to the latest release.
+
+### Upstream
+
+- `upstream`: router-for-me/Cli-Proxy-API-Management-Center. Never push or open PRs there unless asked.
+- Merge `upstream/main` into a branch off `main` and PR it into `origin/main`. Never rebase or force-push `main`.
+- Conflicts: keep the divergences in **Fork Notes** and take upstream elsewhere. Do not reintroduce removed promotions, presets or assets. Flag any new `router-for-me` links.
+- Never release a version that needs proxy APIs the released proxy fork lacks. Release the proxy first.
+
+## Fork Notes
+
+- **No promotions:** sponsor promotions and promotional provider presets are removed (OpenRouter is the preset instead), and project links point to the fork.
+- **Quota page redesign:** the fork has its own quota layout (rows, timeline, and name redaction shared with Auth Files). Upstream quota-page changes need adapting, not taking wholesale.
+- **Usage comes from the proxy fork:** Claude/Codex quota, refresh and resets go through the proxy's `/v8/management/credentials/usage*` routes, never direct upstream `api-call` requests. The proxy owns a single usage view shared with routing and enforces the upstream rate limits. Polling from the browser as well causes 429 lockouts. Live header windows are overlaid so the bars track traffic between fetches.
+- **Config:** exposes the proxy fork's `intelligent-fill` strategy and `reset-credits.auto-apply`.
+
 ## Project Scope & Structure
 
 This is a React 19 + TypeScript + Vite management frontend for CLI Proxy API, not the proxy itself. It exclusively uses the backend v8 Management API under `/v8/management` and the v8 configuration layout; do not add v0 fallbacks or legacy config adapters. Plugin resources and custom HTTP extensions are exceptions: preserve their backend-declared paths.

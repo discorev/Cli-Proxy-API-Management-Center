@@ -6,6 +6,7 @@
  */
 
 import type { TFunction } from 'i18next';
+import type { CredentialResetCode } from '@/services/api/credentialUsage';
 import type {
   AntigravityQuotaState,
   AuthFileItem,
@@ -41,14 +42,32 @@ export interface QuotaStore {
   clearQuotaCache: () => void;
 }
 
+/** A reset is an outcome, not just success/failure; `data` refreshes the card when present. */
+export interface QuotaResetOutcome<TData> {
+  code: CredentialResetCode;
+  data: TData | null;
+  /** When a refused (refresh_pending) reset can be tried again; null when unknown. */
+  nextFetchAtMs: number | null;
+}
+
 export interface QuotaProviderData<TState, TData> {
   type: QuotaProviderType;
   i18nPrefix: string;
   filterFn: (file: AuthFileItem) => boolean;
+  /** Page-load read. Providers backed by the usage cache read it without reaching upstream. */
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  /**
+   * Explicit Refresh / Refresh all. Defaults to `fetchQuota` when absent. `previous`
+   * is the card's state before the refresh, used to tell a fetch from a cache hit.
+   */
+  refreshQuota?: (file: AuthFileItem, t: TFunction, previous?: TState) => Promise<TData>;
   /** Optional details loaded only after the primary quota has been committed. */
   enrichQuota?: (file: AuthFileItem, data: TData, t: TFunction) => Promise<TData>;
-  resetQuota?: (file: AuthFileItem, t: TFunction) => Promise<TData>;
+  resetQuota?: (
+    file: AuthFileItem,
+    t: TFunction,
+    previous?: TState
+  ) => Promise<QuotaResetOutcome<TData>>;
   canResetQuota?: (quota: TState) => boolean;
   storeSelector: (state: QuotaStore) => Record<string, TState>;
   storeSetter: keyof QuotaStore;
