@@ -1212,6 +1212,22 @@
           "label": "回應引導",
           "hint": "實驗性全雙工 Codex Responses WebSocket。每條連線始終綁定同一上游帳號與模型，已接受的輸入不會重播。預設關閉。"
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket 連線池",
+          "hint": "透過池化的上游 websocket 處理一般 HTTP 的 Codex 請求，後續輪次只傳送新增輸入。由所有開啟 websockets 的 Codex 憑證共用（Codex OAuth 預設開啟），包括選擇開啟的 API Key 項目。預設開啟。"
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "連線池閒置逾時",
+          "hint": "關閉閒置超過該時長的池化連線，例如 10m 或 600（秒）。預設：10m；留空或 0 使用預設值。"
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "最大池化連線數",
+          "hint": "所有憑證合計的池化連線上限。預設：512；留空或 0 使用預設值。"
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "每個憑證的最大池化連線數",
+          "hint": "每個憑證的池化連線上限。預設：64；留空或 0 使用預設值。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "啟用連線池",
           "hint": "重用上游 HTTP/1.1 連線。預設 false，使用短連線。"

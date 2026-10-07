@@ -85,6 +85,27 @@ export const ADDITION_FIELDS = [
     path: 'oauth.providers.codex.response-steering'.split('.'),
     kind: 'boolean',
   },
+  // Canonical upstream path only: the backend has no oauth.providers.codex alias for the pool.
+  {
+    key: 'codexHttpWebsocketPoolEnabled',
+    path: 'upstream.codex.http-websocket-pool.enabled'.split('.'),
+    kind: 'boolean',
+  },
+  {
+    key: 'codexHttpWebsocketPoolIdleTimeout',
+    path: 'upstream.codex.http-websocket-pool.idle-timeout'.split('.'),
+    kind: 'string',
+  },
+  {
+    key: 'codexHttpWebsocketPoolMaxSockets',
+    path: 'upstream.codex.http-websocket-pool.max-sockets'.split('.'),
+    kind: 'integer',
+  },
+  {
+    key: 'codexHttpWebsocketPoolMaxSocketsPerAuth',
+    path: 'upstream.codex.http-websocket-pool.max-sockets-per-auth'.split('.'),
+    kind: 'integer',
+  },
   {
     key: 'antigravityConnectionPoolEnabled',
     path: 'oauth.providers.antigravity.connection-pool.enabled'.split('.'),
@@ -298,6 +319,9 @@ export function validateVisualAdditions(
     videoResultAuthCacheTTL: undefined,
     claudeHeaderTimezone: undefined,
     codexStreamBootstrapTimeout: undefined,
+    codexHttpWebsocketPoolIdleTimeout: undefined,
+    codexHttpWebsocketPoolMaxSockets: undefined,
+    codexHttpWebsocketPoolMaxSocketsPerAuth: undefined,
     antigravityConnectionPoolIdleTimeout: undefined,
     antigravityConnectionPoolMaxIdleConnsPerHost: undefined,
     codexLiveMediaRelayMaxSessions: undefined,
@@ -325,6 +349,7 @@ export function validateVisualAdditions(
     'videoResultAuthCacheTTL',
     'antigravityConnectionPoolIdleTimeout',
     'codexStreamBootstrapTimeout',
+    'codexHttpWebsocketPoolIdleTimeout',
   ] as const) {
     // The backend accepts these strings with runtime fallbacks. Existing values must not
     // block unrelated edits, but newly edited durations still receive strict validation.
@@ -332,13 +357,15 @@ export function validateVisualAdditions(
     const value = values[key].trim();
     if (!value) continue;
     const codex = key === 'codexStreamBootstrapTimeout';
+    const pool = key === 'codexHttpWebsocketPoolIdleTimeout';
     if (codex && /^(none|unlimited|disabled|off|never)$/i.test(value)) continue;
+    // Both Codex durations also accept a bare number of seconds; 0 keeps the pool default.
     const duration =
-      codex && /^\+?\d+$/.test(value) && Number(value) <= 9223372036
+      (codex || pool) && /^\+?\d+$/.test(value) && Number(value) <= 9223372036
         ? Number(value)
         : goDurationSeconds(value);
     if (duration === undefined) errors[key] = 'invalid_duration';
-    else if (codex && duration < 0) errors[key] = 'invalid_duration';
+    else if ((codex || pool) && duration < 0) errors[key] = 'invalid_duration';
     else if (key === 'videoResultAuthCacheTTL' && duration <= 0) errors[key] = 'positive_duration';
     // Pool timeout <= 0 switches to short-lived connections; > 210s is clamped by the backend.
   }

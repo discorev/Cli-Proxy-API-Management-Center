@@ -1188,6 +1188,22 @@
           "label": "Response steering",
           "hint": "Experimental full-duplex Codex Responses WebSockets. Each socket stays bound to one upstream account and model; accepted input is never replayed. Disabled by default."
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket pool",
+          "hint": "Serve plain-HTTP Codex requests over pooled upstream websockets so follow-up turns send only new input. Shared by every Codex credential with websockets enabled (on by default for Codex OAuth), including API-key entries that opt in. Enabled by default."
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "Pool idle timeout",
+          "hint": "Close pooled sockets idle for longer than this, e.g. 10m or 600 (seconds). Default: 10m; empty or 0 uses the default."
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "Maximum pooled sockets",
+          "hint": "Cap on pooled sockets across all credentials. Default: 512; empty or 0 uses the default."
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "Maximum pooled sockets per credential",
+          "hint": "Cap on pooled sockets for each credential. Default: 64; empty or 0 uses the default."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "Enable connection pooling",
           "hint": "Reuse upstream HTTP/1.1 connections. Default: false (short-lived connections)."

@@ -140,6 +140,70 @@ export function SectionOAuthBehavior({
                 onChange={(codexResponseSteering) => onChange({ codexResponseSteering })}
               />
             </FieldAnchor>
+            <FieldAnchor fieldId="codexHttpWebsocketPoolEnabled">
+              <ToggleRow
+                title={t('config_management.visual.additions.codexHttpWebsocketPoolEnabled.label')}
+                description={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolEnabled.hint'
+                )}
+                checked={values.codexHttpWebsocketPoolEnabled}
+                disabled={disabled}
+                onChange={(codexHttpWebsocketPoolEnabled) =>
+                  onChange({ codexHttpWebsocketPoolEnabled })
+                }
+              />
+            </FieldAnchor>
+            <FieldAnchor fieldId="codexHttpWebsocketPoolIdleTimeout">
+              <Input
+                label={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolIdleTimeout.label'
+                )}
+                hint={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolIdleTimeout.hint'
+                )}
+                type="text"
+                placeholder="10m"
+                value={values.codexHttpWebsocketPoolIdleTimeout}
+                onChange={(e) => onChange({ codexHttpWebsocketPoolIdleTimeout: e.target.value })}
+                disabled={disabled}
+                error={getValidationMessage(t, validationErrors?.codexHttpWebsocketPoolIdleTimeout)}
+              />
+            </FieldAnchor>
+            <FieldAnchor fieldId="codexHttpWebsocketPoolMaxSockets">
+              <Input
+                label={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolMaxSockets.label'
+                )}
+                hint={t('config_management.visual.additions.codexHttpWebsocketPoolMaxSockets.hint')}
+                type="number"
+                placeholder="512"
+                value={values.codexHttpWebsocketPoolMaxSockets}
+                onChange={(e) => onChange({ codexHttpWebsocketPoolMaxSockets: e.target.value })}
+                disabled={disabled}
+                error={getValidationMessage(t, validationErrors?.codexHttpWebsocketPoolMaxSockets)}
+              />
+            </FieldAnchor>
+            <FieldAnchor fieldId="codexHttpWebsocketPoolMaxSocketsPerAuth">
+              <Input
+                label={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolMaxSocketsPerAuth.label'
+                )}
+                hint={t(
+                  'config_management.visual.additions.codexHttpWebsocketPoolMaxSocketsPerAuth.hint'
+                )}
+                type="number"
+                placeholder="64"
+                value={values.codexHttpWebsocketPoolMaxSocketsPerAuth}
+                onChange={(e) =>
+                  onChange({ codexHttpWebsocketPoolMaxSocketsPerAuth: e.target.value })
+                }
+                disabled={disabled}
+                error={getValidationMessage(
+                  t,
+                  validationErrors?.codexHttpWebsocketPoolMaxSocketsPerAuth
+                )}
+              />
+            </FieldAnchor>
           </FieldGrid>
         </FieldGroup>
         <FieldGroup title={t('config_management.visual.additions.antigravityTitle')}>

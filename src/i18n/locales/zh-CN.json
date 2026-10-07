@@ -1186,6 +1186,22 @@
           "label": "响应引导",
           "hint": "实验性全双工 Codex Responses WebSocket。每条连接始终绑定同一上游账号和模型，已接受的输入不会重放。默认关闭。"
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket 连接池",
+          "hint": "通过池化的上游 websocket 处理普通 HTTP 的 Codex 请求，后续轮次只发送新增输入。由所有开启 websockets 的 Codex 凭证共享（Codex OAuth 默认开启），包括选择开启的 API Key 条目。默认开启。"
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "连接池空闲超时",
+          "hint": "关闭空闲超过该时长的池化连接，例如 10m 或 600（秒）。默认：10m；留空或 0 使用默认值。"
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "最大池化连接数",
+          "hint": "所有凭证合计的池化连接上限。默认：512；留空或 0 使用默认值。"
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "每个凭证的最大池化连接数",
+          "hint": "每个凭证的池化连接上限。默认：64；留空或 0 使用默认值。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "启用连接池",
           "hint": "复用上游 HTTP/1.1 连接。默认 false，使用短连接。"

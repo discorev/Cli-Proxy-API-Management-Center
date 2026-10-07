@@ -21,6 +21,9 @@ export type VisualConfigFieldPath =
   | 'videoResultAuthCacheTTL'
   | 'claudeHeaderTimezone'
   | 'codexStreamBootstrapTimeout'
+  | 'codexHttpWebsocketPoolIdleTimeout'
+  | 'codexHttpWebsocketPoolMaxSockets'
+  | 'codexHttpWebsocketPoolMaxSocketsPerAuth'
   | 'antigravityConnectionPoolIdleTimeout'
   | 'antigravityConnectionPoolMaxIdleConnsPerHost'
   | 'codexLiveMediaRelayMaxSessions'
@@ -143,6 +146,10 @@ export type VisualConfigValues = {
   codexOptimizeMultiAgentV2: boolean;
   codexOrphanDelegationCompatibility: boolean;
   codexResponseSteering: boolean;
+  codexHttpWebsocketPoolEnabled: boolean;
+  codexHttpWebsocketPoolIdleTimeout: string;
+  codexHttpWebsocketPoolMaxSockets: string;
+  codexHttpWebsocketPoolMaxSocketsPerAuth: string;
   antigravityConnectionPoolEnabled: boolean;
   antigravityConnectionPoolIdleTimeout: string;
   antigravityConnectionPoolMaxIdleConnsPerHost: string;
@@ -249,6 +256,11 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   codexOptimizeMultiAgentV2: false,
   codexOrphanDelegationCompatibility: false,
   codexResponseSteering: false,
+  // The backend pools plain-HTTP Codex websockets unless explicitly disabled.
+  codexHttpWebsocketPoolEnabled: true,
+  codexHttpWebsocketPoolIdleTimeout: '',
+  codexHttpWebsocketPoolMaxSockets: '',
+  codexHttpWebsocketPoolMaxSocketsPerAuth: '',
   antigravityConnectionPoolEnabled: false,
   antigravityConnectionPoolIdleTimeout: '',
   antigravityConnectionPoolMaxIdleConnsPerHost: '',
