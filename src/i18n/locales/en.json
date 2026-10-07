@@ -398,6 +398,7 @@
     "disable_cooling_hint": "Skip failure cooldown and exponential backoff only for this credential; other credentials are unaffected.",
     "websockets_label": "WebSockets (websockets)",
     "websockets_hint": "Enable Responses API websocket transport for this credential.",
+    "websockets_hint_default_on": "Use the Responses API websocket transport for this credential. On by default for Codex OAuth credentials; turn it off to opt out.",
     "using_api_label": "Use official API (using_api)",
     "using_api_hint": "Use the official xAI API when enabled; use Grok CLI chat-proxy when disabled.",
     "policy_alias_name": "Alias",

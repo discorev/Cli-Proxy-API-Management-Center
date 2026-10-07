@@ -396,6 +396,7 @@
     "disable_cooling_hint": "开启后，仅当前凭证跳过失败后的冷却与指数退避；其他凭证不受影响。",
     "websockets_label": "WebSockets（websockets）",
     "websockets_hint": "为该凭证开启 Responses API 的 websocket 传输。",
+    "websockets_hint_default_on": "为该凭证使用 Responses API 的 websocket 传输。Codex OAuth 凭证默认开启；关闭即可停用。",
     "using_api_label": "使用官方 API（using_api）",
     "using_api_hint": "开启后使用 xAI 官方 API；关闭时使用 Grok CLI chat-proxy。",
     "policy_alias_name": "模型别名",

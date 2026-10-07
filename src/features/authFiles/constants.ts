@@ -215,8 +215,30 @@ export const readAuthFileDisableCooling = (value: Record<string, unknown>): bool
 export const supportsAuthFileWebsockets = (providerKey: string): boolean =>
   AUTH_FILE_WEBSOCKET_PROVIDERS.has(normalizeProviderKey(providerKey));
 
-export const readAuthFileWebsockets = (value: Record<string, unknown>): boolean =>
-  parseDisableCoolingValue(value.websockets ?? value.websocket) ?? false;
+const API_KEY_AUTH_KINDS = new Set(['apikey', 'api_key', 'api-key']);
+
+/**
+ * Effective websockets value when the auth file omits the key. Mirrors the proxy fork
+ * (sdk/cliproxy/auth/websockets.go): Codex OAuth/file credentials default to on, while
+ * API-key Codex credentials and every other provider stay opt-in.
+ */
+export const authFileWebsocketsDefault = (
+  providerKey: string,
+  value: Record<string, unknown>
+): boolean =>
+  normalizeProviderKey(providerKey) === 'codex' &&
+  !API_KEY_AUTH_KINDS.has(
+    String(value.auth_kind ?? '')
+      .trim()
+      .toLowerCase()
+  );
+
+export const readAuthFileWebsockets = (
+  value: Record<string, unknown>,
+  providerKey: string
+): boolean =>
+  parseDisableCoolingValue(value.websockets ?? value.websocket) ??
+  authFileWebsocketsDefault(providerKey, value);
 
 export const applyAuthFileWebsockets = (
   value: Record<string, unknown>,

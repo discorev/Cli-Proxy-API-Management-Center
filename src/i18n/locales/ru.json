@@ -401,6 +401,7 @@
     "disable_cooling_hint": "Отключает cooldown после ошибок и экспоненциальную задержку только для этих учётных данных; остальные не затрагиваются.",
     "websockets_label": "WebSockets (websockets)",
     "websockets_hint": "Включает websocket-транспорт Responses API для этих учётных данных.",
+    "websockets_hint_default_on": "Использует websocket-транспорт Responses API для этих учётных данных. Для OAuth-учётных данных Codex включено по умолчанию; выключите, чтобы отказаться.",
     "using_api_label": "Использовать официальный API (using_api)",
     "using_api_hint": "Если включено, используется официальный API xAI; если выключено — Grok CLI chat-proxy.",
     "headers_label": "Пользовательские заголовки (headers)",
