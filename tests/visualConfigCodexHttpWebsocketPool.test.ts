@@ -112,9 +112,13 @@ describe('Codex HTTP websocket pool settings', () => {
       'codexHttpWebsocketPoolMaxSockets',
       'codexHttpWebsocketPoolMaxSocketsPerAuth',
     ] as const) {
-      for (const value of ['', '0', '64']) expect(errors({ [key]: value })[key]).toBeUndefined();
-      for (const value of ['-1', '1.5', 'many']) {
-        expect(errors({ [key]: value })[key]).toBe('non_negative_integer');
+      // The backend uses its default for any cap <= 0, so negative values are accepted
+      // rather than blocking unrelated saves.
+      for (const value of ['', '0', '64', '-1']) {
+        expect(errors({ [key]: value })[key]).toBeUndefined();
+      }
+      for (const value of ['1.5', 'many']) {
+        expect(errors({ [key]: value })[key]).toBe('integer');
       }
     }
   });

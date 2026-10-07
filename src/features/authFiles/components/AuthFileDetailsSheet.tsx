@@ -270,7 +270,7 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                       />
                       <div className="hint">
                         {t(
-                          authFileWebsocketsDefault(editor.providerKey, editor.json ?? {})
+                          authFileWebsocketsDefault(editor.providerKey)
                             ? 'auth_files.websockets_hint_default_on'
                             : 'auth_files.websockets_hint'
                         )}

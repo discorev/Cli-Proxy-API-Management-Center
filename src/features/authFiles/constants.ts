@@ -215,30 +215,39 @@ export const readAuthFileDisableCooling = (value: Record<string, unknown>): bool
 export const supportsAuthFileWebsockets = (providerKey: string): boolean =>
   AUTH_FILE_WEBSOCKET_PROVIDERS.has(normalizeProviderKey(providerKey));
 
-const API_KEY_AUTH_KINDS = new Set(['apikey', 'api_key', 'api-key']);
-
 /**
  * Effective websockets value when the auth file omits the key. Mirrors the proxy fork
- * (sdk/cliproxy/auth/websockets.go): Codex OAuth/file credentials default to on, while
- * API-key Codex credentials and every other provider stay opt-in.
+ * (sdk/cliproxy/auth/websockets.go): every Codex auth file defaults to on, because the
+ * file synthesizer classifies all auth files as OAuth regardless of their `auth_kind`
+ * field. Every other provider stays opt-in.
  */
-export const authFileWebsocketsDefault = (
-  providerKey: string,
-  value: Record<string, unknown>
-): boolean =>
-  normalizeProviderKey(providerKey) === 'codex' &&
-  !API_KEY_AUTH_KINDS.has(
-    String(value.auth_kind ?? '')
-      .trim()
-      .toLowerCase()
-  );
+export const authFileWebsocketsDefault = (providerKey: string): boolean =>
+  normalizeProviderKey(providerKey) === 'codex';
 
+// Go strconv.ParseBool spellings, which is what the proxy accepts for `websockets`.
+const GO_TRUE_VALUES = new Set(['1', 't', 'T', 'TRUE', 'true', 'True']);
+const GO_FALSE_VALUES = new Set(['0', 'f', 'F', 'FALSE', 'false', 'False']);
+
+/**
+ * Parses an explicit `websockets` value exactly as the proxy does: a JSON boolean, or a
+ * string ParseBool accepts after trimming. Anything else is not explicit, so the proxy
+ * falls back to the provider default.
+ */
+export const parseAuthFileWebsocketsValue = (value: unknown): boolean | undefined => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (GO_TRUE_VALUES.has(trimmed)) return true;
+  if (GO_FALSE_VALUES.has(trimmed)) return false;
+  return undefined;
+};
+
+// The proxy only reads `websockets`; a legacy `websocket` key has no effect there.
 export const readAuthFileWebsockets = (
   value: Record<string, unknown>,
   providerKey: string
 ): boolean =>
-  parseDisableCoolingValue(value.websockets ?? value.websocket) ??
-  authFileWebsocketsDefault(providerKey, value);
+  parseAuthFileWebsocketsValue(value.websockets) ?? authFileWebsocketsDefault(providerKey);
 
 export const applyAuthFileWebsockets = (
   value: Record<string, unknown>,

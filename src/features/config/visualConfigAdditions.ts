@@ -336,6 +336,9 @@ export function validateVisualAdditions(
     const signed =
       key === 'transientErrorCooldownSeconds' ||
       key === 'antigravityConnectionPoolMaxIdleConnsPerHost' ||
+      // The backend uses its default for any pool cap <= 0.
+      key === 'codexHttpWebsocketPoolMaxSockets' ||
+      key === 'codexHttpWebsocketPoolMaxSocketsPerAuth' ||
       (key === 'codexLiveMediaRelayMaxSessions' && !values.codexLiveMediaRelayEnabled);
     if (
       !/^-?\d+$/.test(value) ||
