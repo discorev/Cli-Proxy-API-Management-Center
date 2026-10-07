@@ -16,7 +16,7 @@
 - **No promotions:** sponsor promotions and promotional provider presets are removed (OpenRouter is the preset instead), and project links point to the fork.
 - **Quota page redesign:** the fork has its own quota layout (rows, timeline, and name redaction shared with Auth Files). Upstream quota-page changes need adapting, not taking wholesale.
 - **Usage comes from the proxy fork:** Claude/Codex quota, refresh and resets go through the proxy's `/v8/management/credentials/usage*` routes, never direct upstream `api-call` requests. The proxy owns a single usage view shared with routing and enforces the upstream rate limits. Polling from the browser as well causes 429 lockouts. Live header windows are overlaid so the bars track traffic between fetches.
-- **Config:** exposes the proxy fork's `intelligent-fill` strategy and `reset-credits.auto-apply`.
+- **Config:** exposes the proxy fork's `intelligent-fill` strategy, which is the default when `routing.strategy` is unset or unknown (round-robin must be written explicitly), `reset-credits.auto-apply`, and `upstream.codex.http-websocket-pool` (on by default; the canonical path only, as there is no `oauth.providers.codex` alias). Codex OAuth auth files treat a missing `websockets` key as on.
 
 ## Project Scope & Structure
 
