@@ -132,6 +132,10 @@ export function SectionNetwork({
                 value={values.routingStrategy}
                 options={[
                   {
+                    value: 'intelligent-fill',
+                    label: t('config_management.visual.sections.network.strategy_intelligent_fill'),
+                  },
+                  {
                     value: 'round-robin',
                     label: t('config_management.visual.sections.network.strategy_round_robin'),
                   },
@@ -144,10 +148,6 @@ export function SectionNetwork({
                   {
                     value: 'fill-first',
                     label: t('config_management.visual.sections.network.strategy_fill_first'),
-                  },
-                  {
-                    value: 'intelligent-fill',
-                    label: t('config_management.visual.sections.network.strategy_intelligent_fill'),
                   },
                 ]}
                 id={`${routingStrategyLabelId}-select`}

@@ -3,6 +3,8 @@ import { createElement, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { parse as parseYaml } from 'yaml';
 import { parseRoutingStrategy, useVisualConfig } from '../src/hooks/useVisualConfig';
+import { DEFAULT_VISUAL_VALUES } from '../src/types/visualConfig';
+import { isDefaultedRoutingStrategy } from '../src/utils/routingStrategy';
 import { runVisualConfig } from './helpers/visualConfig';
 
 describe('visual config weighted routing strategy', () => {
@@ -18,7 +20,7 @@ describe('visual config weighted routing strategy', () => {
     expect(parseRoutingStrategy('intelligentfill')).toBe('intelligent-fill');
     expect(parseRoutingStrategy('if')).toBe('intelligent-fill');
     expect(parseRoutingStrategy(' IF ')).toBe('intelligent-fill');
-    expect(parseRoutingStrategy(undefined)).toBe('round-robin');
+    expect(parseRoutingStrategy(undefined)).toBe('intelligent-fill');
   });
 
   test('writes weighted-round-robin without coercing it to round-robin', () => {
@@ -97,5 +99,66 @@ describe('intelligent-fill and reset-credits auto-apply', () => {
       'config-version': 8,
       'reset-credits': { 'auto-apply': true },
     });
+  });
+});
+
+// Backend contract: sdk/cliproxy/service_config.go normalizedRoutingRuntimeState defaults
+// unset or unrecognized routing.strategy to intelligent-fill; round-robin must be explicit.
+describe('intelligent-fill routing default', () => {
+  test('unset and unknown strategies resolve to intelligent-fill', () => {
+    expect(DEFAULT_VISUAL_VALUES.routingStrategy).toBe('intelligent-fill');
+    for (const raw of [undefined, null, '', '  ', 'unknown', 42]) {
+      expect(parseRoutingStrategy(raw)).toBe('intelligent-fill');
+      expect(isDefaultedRoutingStrategy(raw)).toBe(true);
+    }
+    for (const raw of ['round-robin', 'roundrobin', 'rr', ' Round-Robin ', 'RR']) {
+      expect(parseRoutingStrategy(raw)).toBe('round-robin');
+      expect(isDefaultedRoutingStrategy(raw)).toBe(false);
+    }
+    for (const raw of ['intelligent-fill', 'fill-first', 'weighted-round-robin']) {
+      expect(isDefaultedRoutingStrategy(raw)).toBe(false);
+    }
+  });
+
+  test('reads intelligent-fill when routing.strategy is absent or null', () => {
+    for (const yaml of [
+      'config-version: 8\n',
+      'config-version: 8\nrouting: null\n',
+      'config-version: 8\nrouting:\n  session-affinity: true\n',
+      'config-version: 8\nrouting:\n  strategy: bogus\n',
+    ]) {
+      expect(runVisualConfig(yaml).visualValues.routingStrategy).toBe('intelligent-fill');
+    }
+  });
+
+  test('no-op saves do not inject a routing strategy', () => {
+    for (const yaml of [
+      'config-version: 8\n',
+      'config-version: 8\nrouting:\n  session-affinity: true\n',
+    ]) {
+      expect(parseYaml(runVisualConfig(yaml).applyVisualChangesToYaml(yaml))).toEqual(
+        parseYaml(yaml)
+      );
+      const unrelated = runVisualConfig(yaml, [{ port: '9000' }]);
+      expect(parseYaml(unrelated.applyVisualChangesToYaml(yaml)).routing?.strategy).toBeUndefined();
+    }
+    // Selecting the default and switching back is not a change either.
+    const yaml = 'config-version: 8\n';
+    const roundTrip = runVisualConfig(yaml, [
+      { routingStrategy: 'round-robin' },
+      { routingStrategy: 'intelligent-fill' },
+    ]);
+    expect(parseYaml(roundTrip.applyVisualChangesToYaml(yaml))).toEqual({ 'config-version': 8 });
+  });
+
+  test('choosing round-robin on a config without a strategy writes it explicitly', () => {
+    const yaml = 'config-version: 8\n';
+    const config = runVisualConfig(yaml, [{ routingStrategy: 'round-robin' }]);
+    const output = config.applyVisualChangesToYaml(yaml);
+    expect(parseYaml(output)).toEqual({
+      'config-version': 8,
+      routing: { strategy: 'round-robin' },
+    });
+    expect(runVisualConfig(output).visualValues.routingStrategy).toBe('round-robin');
   });
 });

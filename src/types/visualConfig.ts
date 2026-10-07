@@ -295,7 +295,8 @@ export const DEFAULT_VISUAL_VALUES: VisualConfigValues = {
   quotaSwitchProject: false,
   quotaSwitchPreviewModel: false,
   quotaAntigravityCredits: false,
-  routingStrategy: 'round-robin',
+  // Matches the proxy fork: unset or unrecognized routing.strategy means intelligent-fill.
+  routingStrategy: 'intelligent-fill',
   resetCreditsAutoApply: false,
   routingSessionAffinity: false,
   routingSessionAffinityTTL: '',
