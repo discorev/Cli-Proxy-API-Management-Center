@@ -178,6 +178,7 @@
     "runtime_eyebrow": "執行階段",
     "runtime_title": "執行設定總覽",
     "runtime_routing": "路由策略",
+    "runtime_routing_default": "{{strategy}} · 預設",
     "runtime_retry": "請求重試",
     "runtime_management_keys": "管理金鑰",
     "runtime_version": "伺服器版本",
@@ -395,6 +396,7 @@
     "disable_cooling_hint": "開啟後，僅目前憑證會略過失敗後的冷卻與指數退避；其他憑證不受影響。",
     "websockets_label": "WebSockets（websockets）",
     "websockets_hint": "為該憑證開啟 Responses API 的 websocket 傳輸。",
+    "websockets_hint_default_on": "為該憑證使用 Responses API 的 websocket 傳輸。Codex OAuth 憑證預設開啟；關閉即可停用。",
     "using_api_label": "使用官方 API（using_api）",
     "using_api_hint": "開啟後使用 xAI 官方 API；關閉時使用 Grok CLI chat-proxy。",
     "policy_alias_name": "模型別名",
@@ -1210,6 +1212,22 @@
           "label": "回應引導",
           "hint": "實驗性全雙工 Codex Responses WebSocket。每條連線始終綁定同一上游帳號與模型，已接受的輸入不會重播。預設關閉。"
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket 連線池",
+          "hint": "透過池化的上游 websocket 處理一般 HTTP 的 Codex 請求，後續輪次只傳送新增輸入。由所有開啟 websockets 的 Codex 憑證共用（Codex OAuth 預設開啟），包括選擇開啟的 API Key 項目。預設開啟。"
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "連線池閒置逾時",
+          "hint": "關閉閒置超過該時長的池化連線，例如 10m 或 600（秒）。預設：10m；留空或 0 使用預設值。"
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "最大池化連線數",
+          "hint": "所有憑證合計的池化連線上限。預設：512；留空或 0 使用預設值。"
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "每個憑證的最大池化連線數",
+          "hint": "每個憑證的池化連線上限。預設：64；留空或 0 使用預設值。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "啟用連線池",
           "hint": "重用上游 HTTP/1.1 連線。預設 false，使用短連線。"
@@ -1407,7 +1425,7 @@
           "strategy_round_robin": "輪詢（Round Robin）",
           "strategy_weighted_round_robin": "加權輪詢（Weighted Round Robin）",
           "strategy_fill_first": "填充優先（Fill First）",
-          "strategy_intelligent_fill": "智慧填充（最早重置優先）",
+          "strategy_intelligent_fill": "智慧填充（預設，最早重置優先）",
           "strategy_intelligent_fill_hint": "優先使用最早重置的訂閱。",
           "reset_credits_auto_apply": "自動使用儲備重置",
           "reset_credits_auto_apply_desc": "在儲備的 Codex 與 Claude 重置過期作廢前自動使用",

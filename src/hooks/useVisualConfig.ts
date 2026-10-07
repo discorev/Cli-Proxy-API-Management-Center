@@ -11,12 +11,12 @@ import type {
   PayloadParamEntry,
   PayloadParamValueType,
   PayloadRule,
-  RoutingStrategy,
   VisualConfigValues,
   VisualConfigValidationErrors,
   PayloadParamValidationErrorCode,
 } from '@/types/visualConfig';
 import { DEFAULT_VISUAL_VALUES } from '@/types/visualConfig';
+import { parseRoutingStrategy } from '@/utils/routingStrategy';
 import { assertConfigListsUnchanged, ConfigDraftConflictError } from '@/services/api/configPatch';
 import {
   ADDITION_FIELDS,
@@ -426,17 +426,7 @@ function parsePayloadProtocol(raw: unknown): string | undefined {
   return raw.trim() ? raw : undefined;
 }
 
-export function parseRoutingStrategy(raw: unknown): RoutingStrategy {
-  const normalized = String(raw ?? '')
-    .trim()
-    .toLowerCase();
-  if (['weighted-round-robin', 'weightedroundrobin', 'wrr'].includes(normalized)) {
-    return 'weighted-round-robin';
-  }
-  if (['fill-first', 'fillfirst', 'ff'].includes(normalized)) return 'fill-first';
-  if (['intelligent-fill', 'intelligentfill', 'if'].includes(normalized)) return 'intelligent-fill';
-  return 'round-robin';
-}
+export { parseRoutingStrategy };
 
 export function parseDisableImageGenerationMode(raw: unknown): DisableImageGenerationMode {
   if (raw === true) return 'true';

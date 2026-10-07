@@ -13,6 +13,7 @@ import type {
   PrefixProxyEditorState,
 } from '@/features/authFiles/hooks/useAuthFilesPrefixProxyEditor';
 import {
+  authFileWebsocketsDefault,
   supportsAuthFileUsingApi,
   supportsAuthFileWebsockets,
 } from '@/features/authFiles/constants';
@@ -267,7 +268,13 @@ export function AuthFileDetailsSheet(props: AuthFileDetailsSheetProps) {
                         disabled={disableControls || editor.saving || !editor.json}
                         ariaLabel={t('auth_files.websockets_label')}
                       />
-                      <div className="hint">{t('auth_files.websockets_hint')}</div>
+                      <div className="hint">
+                        {t(
+                          authFileWebsocketsDefault(editor.providerKey)
+                            ? 'auth_files.websockets_hint_default_on'
+                            : 'auth_files.websockets_hint'
+                        )}
+                      </div>
                     </div>
                   )}
                   {supportsAuthFileUsingApi(editor.providerKey) && (

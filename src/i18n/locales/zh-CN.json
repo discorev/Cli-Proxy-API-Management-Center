@@ -178,6 +178,7 @@
     "runtime_eyebrow": "运行时",
     "runtime_title": "运行配置一览",
     "runtime_routing": "路由策略",
+    "runtime_routing_default": "{{strategy}} · 默认",
     "runtime_retry": "请求重试",
     "runtime_management_keys": "管理密钥",
     "runtime_version": "服务端版本",
@@ -395,6 +396,7 @@
     "disable_cooling_hint": "开启后，仅当前凭证跳过失败后的冷却与指数退避；其他凭证不受影响。",
     "websockets_label": "WebSockets（websockets）",
     "websockets_hint": "为该凭证开启 Responses API 的 websocket 传输。",
+    "websockets_hint_default_on": "为该凭证使用 Responses API 的 websocket 传输。Codex OAuth 凭证默认开启；关闭即可停用。",
     "using_api_label": "使用官方 API（using_api）",
     "using_api_hint": "开启后使用 xAI 官方 API；关闭时使用 Grok CLI chat-proxy。",
     "policy_alias_name": "模型别名",
@@ -1184,6 +1186,22 @@
           "label": "响应引导",
           "hint": "实验性全双工 Codex Responses WebSocket。每条连接始终绑定同一上游账号和模型，已接受的输入不会重放。默认关闭。"
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket 连接池",
+          "hint": "通过池化的上游 websocket 处理普通 HTTP 的 Codex 请求，后续轮次只发送新增输入。由所有开启 websockets 的 Codex 凭证共享（Codex OAuth 默认开启），包括选择开启的 API Key 条目。默认开启。"
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "连接池空闲超时",
+          "hint": "关闭空闲超过该时长的池化连接，例如 10m 或 600（秒）。默认：10m；留空或 0 使用默认值。"
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "最大池化连接数",
+          "hint": "所有凭证合计的池化连接上限。默认：512；留空或 0 使用默认值。"
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "每个凭证的最大池化连接数",
+          "hint": "每个凭证的池化连接上限。默认：64；留空或 0 使用默认值。"
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "启用连接池",
           "hint": "复用上游 HTTP/1.1 连接。默认 false，使用短连接。"
@@ -1381,7 +1399,7 @@
           "strategy_round_robin": "轮询 (Round Robin)",
           "strategy_weighted_round_robin": "加权轮询 (Weighted Round Robin)",
           "strategy_fill_first": "填充优先 (Fill First)",
-          "strategy_intelligent_fill": "智能填充（最早重置优先）",
+          "strategy_intelligent_fill": "智能填充（默认，最早重置优先）",
           "strategy_intelligent_fill_hint": "优先使用最早重置的订阅。",
           "reset_credits_auto_apply": "自动使用储备重置",
           "reset_credits_auto_apply_desc": "在储备的 Codex 和 Claude 重置过期作废前自动使用",

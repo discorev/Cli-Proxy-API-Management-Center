@@ -178,6 +178,7 @@
     "runtime_eyebrow": "Runtime",
     "runtime_title": "Configuration at a glance",
     "runtime_routing": "Routing strategy",
+    "runtime_routing_default": "{{strategy}} · default",
     "runtime_retry": "Request retry",
     "runtime_management_keys": "Management keys",
     "runtime_version": "Server version",
@@ -397,6 +398,7 @@
     "disable_cooling_hint": "Skip failure cooldown and exponential backoff only for this credential; other credentials are unaffected.",
     "websockets_label": "WebSockets (websockets)",
     "websockets_hint": "Enable Responses API websocket transport for this credential.",
+    "websockets_hint_default_on": "Use the Responses API websocket transport for this credential. On by default for Codex OAuth credentials; turn it off to opt out.",
     "using_api_label": "Use official API (using_api)",
     "using_api_hint": "Use the official xAI API when enabled; use Grok CLI chat-proxy when disabled.",
     "policy_alias_name": "Alias",
@@ -1186,6 +1188,22 @@
           "label": "Response steering",
           "hint": "Experimental full-duplex Codex Responses WebSockets. Each socket stays bound to one upstream account and model; accepted input is never replayed. Disabled by default."
         },
+        "codexHttpWebsocketPoolEnabled": {
+          "label": "HTTP websocket pool",
+          "hint": "Serve plain-HTTP Codex requests over pooled upstream websockets so follow-up turns send only new input. Shared by every Codex credential with websockets enabled (on by default for Codex OAuth), including API-key entries that opt in. Enabled by default."
+        },
+        "codexHttpWebsocketPoolIdleTimeout": {
+          "label": "Pool idle timeout",
+          "hint": "Close pooled sockets idle for longer than this, e.g. 10m or 600 (seconds). Default: 10m; empty or 0 uses the default."
+        },
+        "codexHttpWebsocketPoolMaxSockets": {
+          "label": "Maximum pooled sockets",
+          "hint": "Cap on pooled sockets across all credentials. Default: 512; empty or 0 uses the default."
+        },
+        "codexHttpWebsocketPoolMaxSocketsPerAuth": {
+          "label": "Maximum pooled sockets per credential",
+          "hint": "Cap on pooled sockets for each credential. Default: 64; empty or 0 uses the default."
+        },
         "antigravityConnectionPoolEnabled": {
           "label": "Enable connection pooling",
           "hint": "Reuse upstream HTTP/1.1 connections. Default: false (short-lived connections)."
@@ -1383,7 +1401,7 @@
           "strategy_round_robin": "Round Robin",
           "strategy_weighted_round_robin": "Weighted Round Robin",
           "strategy_fill_first": "Fill First",
-          "strategy_intelligent_fill": "Intelligent Fill (soonest reset first)",
+          "strategy_intelligent_fill": "Intelligent Fill (default, soonest reset first)",
           "strategy_intelligent_fill_hint": "Uses the subscription that resets soonest first.",
           "reset_credits_auto_apply": "Auto-apply banked resets",
           "reset_credits_auto_apply_desc": "Automatically use banked Codex and Claude resets before they would be wasted",

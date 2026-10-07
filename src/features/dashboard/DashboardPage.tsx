@@ -12,6 +12,8 @@ import {
 import { useAuthStore } from '@/stores';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { formatCompactNumber, formatDateValue, formatPercent } from '@/utils/format';
+import { isDefaultedRoutingStrategy, parseRoutingStrategy } from '@/utils/routingStrategy';
+import type { RoutingStrategy } from '@/types/visualConfig';
 import { useDashboardOverview } from './hooks/useDashboardOverview';
 import { LiveWire } from './components/LiveWire';
 import { Meter } from './components/Meter';
@@ -22,6 +24,13 @@ import { providerLabel, splitWindowMinutes, toneForSuccessRate, type MeterTone }
 import styles from './dashboard.module.scss';
 
 const DASH = '—';
+
+const ROUTING_STRATEGY_LABEL_KEYS: Record<RoutingStrategy, string> = {
+  'intelligent-fill': 'basic_settings.routing_strategy_intelligent_fill',
+  'round-robin': 'basic_settings.routing_strategy_round_robin',
+  'weighted-round-robin': 'basic_settings.routing_strategy_weighted_round_robin',
+  'fill-first': 'basic_settings.routing_strategy_fill_first',
+};
 
 /** KPI 卡左上角色签：有语义色调的卡用状态色，其余保持中性 */
 const TILE_ACCENTS: Record<MeterTone, string> = {
@@ -69,16 +78,13 @@ export function DashboardPage() {
   );
 
   const routingStrategy = useMemo(() => {
-    const raw = config?.routingStrategy?.trim() ?? '';
-    if (!raw) return DASH;
-    if (raw === 'round-robin') return t('basic_settings.routing_strategy_round_robin');
-    if (raw === 'weighted-round-robin') {
-      return t('basic_settings.routing_strategy_weighted_round_robin');
-    }
-    if (raw === 'fill-first') return t('basic_settings.routing_strategy_fill_first');
-    if (raw === 'intelligent-fill') return t('basic_settings.routing_strategy_intelligent_fill');
-    return raw;
-  }, [config?.routingStrategy, t]);
+    if (!config) return DASH;
+    // Show the effective strategy: the backend treats unset/unknown values as intelligent-fill.
+    const label = t(ROUTING_STRATEGY_LABEL_KEYS[parseRoutingStrategy(config.routingStrategy)]);
+    return isDefaultedRoutingStrategy(config.routingStrategy)
+      ? t('dashboard.runtime_routing_default', { strategy: label })
+      : label;
+  }, [config, t]);
 
   const unknownProviderLabel = t('dashboard.provider_unknown');
   const successRateTone = toneForSuccessRate(traffic.successRate);
