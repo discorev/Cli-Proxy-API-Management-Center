@@ -224,7 +224,7 @@ export function QuotaRow(props: QuotaRowProps) {
             {model.resetCredits && (
               <div className={`${styles.window} ${styles.resetSlot}`}>
                 <ResetCount
-                  label={t('codex_quota.reset_credits_label')}
+                  label={t('claude_reset.remaining')}
                   count={model.resetCredits.available ?? '--'}
                 />
                 <ResetText

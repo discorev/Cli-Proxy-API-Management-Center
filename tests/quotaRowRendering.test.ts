@@ -165,7 +165,8 @@ describe('QuotaRow', () => {
             quota: { ...codexQuota, rateLimitResetCreditsAvailableCount: 3 },
           })
         ).at(-1) ?? '';
-      expect(codexCell).toContain('Manual resets:<span>3</span></span></div>');
+      expect(codexCell).toContain('Resets remaining:<span>3</span></span></div>');
+      expect(codexCell).not.toContain('Manual resets');
       expect(codexCell).not.toContain('available');
     });
 
@@ -176,7 +177,7 @@ describe('QuotaRow', () => {
       const cells = windowCells(markup);
       expect(cells).toHaveLength(1);
       expect(cells[0]).toContain('Weekly limit');
-      expect(markup).not.toContain('Manual resets');
+      expect(markup).not.toContain('Resets remaining');
     });
 
     test('idle, loading and error rows render no reset cell', () => {
