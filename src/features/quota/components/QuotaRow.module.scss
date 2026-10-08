@@ -9,8 +9,8 @@
 
 .row {
   display: grid;
-  /* 身份 | 窗口 | 重置（定宽，容得下 "Expires: in 14 days · 22/10, 17:00" 一行）| 动作（两枚按钮的最小宽度） */
-  grid-template-columns: 260px minmax(0, 1fr) 240px minmax(230px, auto);
+  /* 身份 | 窗口（含重置格）| 动作（两枚按钮的最小宽度，使各行主体宽度一致） */
+  grid-template-columns: 260px minmax(0, 1fr) minmax(230px, auto);
   align-items: center;
   gap: 8px 16px;
   min-height: 58px;
@@ -100,9 +100,21 @@
   min-width: 0;
 }
 
-/* 重置列：每行都渲染（无重置信息时为空），保证所有行的列位置一致 */
-.resetColumn {
-  min-width: 0;
+/* 重置格：固定在窗口网格最后一条显式轨道的首行；各行窗口区同宽，所以它跨行对齐，
+ * 标签也与窗口标签同一水平线。auto-fill 的轨道是显式轨道，-2 / -1 即最后一条。
+ * 窗口自动填入其余格子。 */
+.resetSlot {
+  grid-column: -2 / -1;
+  grid-row: 1;
+
+  /* 窗口标签与 12px 等宽百分比同基线；重置格没有百分比，补一个同字体的零宽占位，
+   * 让两种标签落在同一水平线上。 */
+  .windowHead::after {
+    content: '\200b';
+    font-family: $font-mono;
+    font-size: 12px;
+    font-weight: 650;
+  }
 }
 
 /* 最后一小时内恢复的窗口：左侧一道警示记号，不改数字颜色 */
@@ -423,9 +435,10 @@
     padding: 11px 10px;
   }
 
-  /* 窄屏单列堆叠：空的重置列不再占位 */
-  .resetColumn:empty {
-    display: none;
+  /* 窄屏：重置格不再钉在末列，跟在窗口之后 */
+  .resetSlot {
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
 
   .actions {

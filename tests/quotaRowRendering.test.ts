@@ -84,8 +84,8 @@ describe('QuotaRow', () => {
   });
 
   // Class names are not resolvable under bun:test (the scss import is a string), so the
-  // row's columns are addressed by position: identity | body | reset | actions.
-  describe('reset column', () => {
+  // row's parts are addressed by position: identity | body (windows..., reset cell) | actions.
+  describe('reset cell', () => {
     const topLevelChildren = (markup: string): string[] => {
       const children: string[] = [];
       const tag = /<(\/?)div\b[^>]*>/g;
@@ -101,6 +101,12 @@ describe('QuotaRow', () => {
         }
       }
       return children;
+    };
+
+    /** The windows grid: first child of the body column. */
+    const windowCells = (markup: string): string[] => {
+      const windows = topLevelChildren(topLevelChildren(markup)[1])[0];
+      return windows ? topLevelChildren(windows) : [];
     };
 
     const codexQuota: CodexQuotaState = {
@@ -122,36 +128,47 @@ describe('QuotaRow', () => {
       type: 'codex',
     };
 
-    test('the Claude reset cell is a sibling of the windows, not inside them', () => {
-      const [identity, body, resetColumn, actions] = topLevelChildren(render());
-      expect(topLevelChildren(render())).toHaveLength(4);
+    test('the row is identity | body | actions, with no separate reset column', () => {
+      const [identity, body, actions] = topLevelChildren(render());
+      expect(topLevelChildren(render())).toHaveLength(3);
       expect(identity).toContain(FILE_NAME);
       expect(body).toContain('7-day limit');
-      expect(body).not.toContain('Resets remaining');
-      expect(resetColumn).toContain('Resets remaining');
+      expect(body).toContain('Resets remaining');
       expect(actions).toContain('Refresh quota');
+      expect(actions).not.toContain('Resets remaining');
+    });
+
+    test('the Claude reset cell is the last child of the windows grid', () => {
+      const cells = windowCells(render());
+      expect(cells).toHaveLength(2);
+      expect(cells[0]).toContain('7-day limit');
+      expect(cells[0]).not.toContain('Resets remaining');
+      expect(cells[1]).toContain('Resets remaining');
     });
 
     test('Claude shows 0, not a dash, when the proxy sent no reset inventory', () => {
       const markup = render({ quota: { ...quota, resetGrants: null } });
-      const resetColumn = topLevelChildren(markup)[2];
-      expect(resetColumn).toContain('<span>0</span>');
-      expect(resetColumn).not.toContain('--');
+      const resetCell = windowCells(markup).at(-1) ?? '';
+      expect(resetCell).toContain('Resets remaining');
+      expect(resetCell).toContain('<span>0</span>');
+      expect(resetCell).not.toContain('--');
     });
 
-    test('a provider without resets still renders an empty reset column', () => {
+    test('a provider without resets renders no reset cell and no placeholder', () => {
       const markup = render({ entry: codexEntry, quota: codexQuota });
       const children = topLevelChildren(markup);
-      expect(children).toHaveLength(4);
-      expect(children[1]).toContain('Weekly limit');
-      expect(children[2]).toBe('<div></div>');
+      expect(children).toHaveLength(3);
+      const cells = windowCells(markup);
+      expect(cells).toHaveLength(1);
+      expect(cells[0]).toContain('Weekly limit');
+      expect(markup).not.toContain('Manual resets');
     });
 
-    test('idle, loading and error rows keep the column, empty', () => {
+    test('idle, loading and error rows render no reset cell', () => {
       for (const state of [undefined, { status: 'loading' }, { status: 'error', error: 'boom' }]) {
-        const children = topLevelChildren(render({ quota: state as never }));
-        expect(children).toHaveLength(4);
-        expect(children[2]).toBe('<div></div>');
+        const markup = render({ quota: state as never });
+        expect(topLevelChildren(markup)).toHaveLength(3);
+        expect(markup).not.toContain('Resets remaining');
       }
     });
   });
