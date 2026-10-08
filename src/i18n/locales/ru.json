@@ -530,6 +530,8 @@
     "plan_label": "Тариф",
     "expires_label": "Истекает",
     "credit_balance_label": "Остаток кредитов",
+    "renews_short": "Продление",
+    "credits_short": "Кредиты",
     "credit_unlimited": "Без ограничений",
     "reset_credits_label": "Ручные сбросы",
     "reset_credits_expiry_label": "Срок действия ручных сбросов ({{timezone}})",

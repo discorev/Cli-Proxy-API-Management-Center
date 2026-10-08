@@ -527,6 +527,8 @@
     "plan_label": "Plan",
     "expires_label": "Renewal time",
     "credit_balance_label": "Credit balance",
+    "renews_short": "Renews",
+    "credits_short": "Credits",
     "credit_unlimited": "Unlimited",
     "reset_credits_label": "Manual resets",
     "reset_credits_expiry_label": "Manual reset expiry ({{timezone}})",

@@ -9,6 +9,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
 import i18n from '@/i18n';
 import { toQuotaRowModel } from '@/features/quota/rowModel';
+import { formatDayShort } from '@/utils/quota';
 import { XAI_WEEKLY_ROW_ID } from '@/features/quota/resetSchedule';
 import type {
   AntigravityQuotaState,
@@ -203,7 +204,23 @@ describe('toQuotaRowModel', () => {
     } as unknown as CodexQuotaState;
     const model = toQuotaRowModel('codex', quota, t);
     expect(model?.plan).toBe('codex_quota.plan_business_premium');
-    expect(model?.planNote).toBe('codex_quota.credit_balance_label codex_quota.credit_unlimited');
+    expect(model?.planNote).toBe('codex_quota.credits_short codex_quota.credit_unlimited');
+  });
+
+  test('Codex plan note uses short labels and a date-only renewal', () => {
+    const renewal = new Date(2026, 10, 5, 20, 59).getTime();
+    const quota = {
+      status: 'success',
+      planType: 'pro',
+      subscriptionActiveUntil: new Date(renewal).toISOString(),
+      creditBalance: '120',
+      windows: [],
+    } as unknown as CodexQuotaState;
+    const model = toQuotaRowModel('codex', quota, t);
+    expect(model?.planNote).toBe(
+      `codex_quota.renews_short ${formatDayShort(renewal)} · codex_quota.credits_short 120`
+    );
+    expect(model?.planNote).not.toContain('20:59');
   });
 
   test('xAI prefers the subscription label and hides an empty monthly cycle on weekly plans', () => {

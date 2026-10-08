@@ -24,6 +24,7 @@ import type {
 } from '@/types';
 import {
   PREMIUM_CODEX_PLAN_TYPES,
+  formatDayShort,
   formatInstantShort,
   formatKimiResetHint,
   formatQuotaResetTime,
@@ -151,10 +152,12 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
     ? t('codex_quota.credit_unlimited')
     : (quota.creditBalance ?? null);
   const planNotes = [
+    // Short forms: the plan line shares a 260px column with the tier and is
+    // truncated past that (the full text stays in the hover title).
     subscriptionMs === null
       ? null
-      : `${t('codex_quota.expires_label')} ${formatInstantShort(subscriptionMs)}`,
-    creditBalance === null ? null : `${t('codex_quota.credit_balance_label')} ${creditBalance}`,
+      : `${t('codex_quota.renews_short')} ${formatDayShort(subscriptionMs)}`,
+    creditBalance === null ? null : `${t('codex_quota.credits_short')} ${creditBalance}`,
   ].filter((note) => note !== null);
 
   return {

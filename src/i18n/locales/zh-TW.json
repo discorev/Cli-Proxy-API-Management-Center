@@ -525,6 +525,8 @@
     "plan_label": "方案",
     "expires_label": "續期時間",
     "credit_balance_label": "Credit 餘額",
+    "renews_short": "續期",
+    "credits_short": "Credit",
     "credit_unlimited": "無限額",
     "reset_credits_label": "主動重置次數",
     "reset_credits_expiry_label": "主動重置過期時間（{{timezone}}）",
