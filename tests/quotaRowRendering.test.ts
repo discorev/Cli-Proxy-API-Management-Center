@@ -154,6 +154,21 @@ describe('QuotaRow', () => {
       expect(resetCell).not.toContain('--');
     });
 
+    test('reset counts share one inline label: count shape for Claude and Codex', () => {
+      const claudeCell = windowCells(render()).at(-1) ?? '';
+      expect(claudeCell).toMatch(/Resets remaining:<span>\d+<\/span><\/span><\/div>/);
+
+      const codexCell =
+        windowCells(
+          render({
+            entry: codexEntry,
+            quota: { ...codexQuota, rateLimitResetCreditsAvailableCount: 3 },
+          })
+        ).at(-1) ?? '';
+      expect(codexCell).toContain('Manual resets:<span>3</span></span></div>');
+      expect(codexCell).not.toContain('available');
+    });
+
     test('a provider without resets renders no reset cell and no placeholder', () => {
       const markup = render({ entry: codexEntry, quota: codexQuota });
       const children = topLevelChildren(markup);

@@ -106,15 +106,6 @@
 .resetSlot {
   grid-column: -2 / -1;
   grid-row: 1;
-
-  /* 窗口标签与 12px 等宽百分比同基线；重置格没有百分比，补一个同字体的零宽占位，
-   * 让两种标签落在同一水平线上。 */
-  .windowHead::after {
-    content: '\200b';
-    font-family: $font-mono;
-    font-size: 12px;
-    font-weight: 650;
-  }
 }
 
 /* 最后一小时内恢复的窗口：左侧一道警示记号，不改数字颜色 */
@@ -216,18 +207,10 @@
   color: var(--text-secondary);
 }
 
-.creditsValue {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
 .creditsCount {
+  margin-left: 4px;
   font-family: $font-mono;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);

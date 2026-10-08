@@ -136,7 +136,7 @@ test('card selection prefers usable recommendation and has deterministic fallbac
 test('Claude row claims through the backend reset route with a shared confirmation', async () => {
   const card = await Bun.file('src/features/quota/components/QuotaRow.tsx').text();
   const hook = await Bun.file('src/features/quota/providers/claude/ClaudeResetGrants.tsx').text();
-  expect(card).toContain("styles.creditsCount}>{claudeReset.count ?? 0}");
+  expect(card).toContain('count={claudeReset.count ?? 0}');
   expect(card).toContain('disabled={claudeReset.blocked}');
   expect(card).toContain('onClick={claudeReset.confirm}');
   expect(hook).toContain('showConfirmation({');
