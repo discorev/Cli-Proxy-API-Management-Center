@@ -33,6 +33,9 @@ export interface QuotaSummaryHeadline {
   /** Sum of remaining percent over loaded credentials; null when none are. */
   totalRemaining: number | null;
   segments: QuotaSummarySegment[];
+  /** Soonest upcoming reset of this window, across loaded credentials. */
+  resetAtMs: number | null;
+  resetLabel: string | null;
 }
 
 export interface QuotaProviderSummary {
@@ -57,6 +60,22 @@ export interface QuotaSummaryInput {
 
 /** Windows with no declared length cannot be compared; they never lead. */
 const windowRank = (window: QuotaRowWindow): number => window.periodHours ?? -1;
+
+/**
+ * Soonest *upcoming* reset when a clock is supplied: a window that already
+ * turned over would otherwise keep the footer showing a countdown that ran out.
+ */
+function pickReset(
+  windows: readonly QuotaRowWindow[],
+  nowMs?: number
+): { resetAtMs: number; resetLabel: string | null } | undefined {
+  const dated = windows
+    .filter((window): window is QuotaRowWindow & { resetAtMs: number } => window.resetAtMs !== null)
+    .sort((a, b) => a.resetAtMs - b.resetAtMs);
+  return (
+    (nowMs === undefined ? undefined : dated.find((window) => window.resetAtMs > nowMs)) ?? dated[0]
+  );
+}
 
 interface Candidate {
   label: string;
@@ -119,7 +138,14 @@ export function buildProviderSummary(
       if (percent !== null) total = (total ?? 0) + percent;
       return { key: input.key, displayName: input.displayName, remainingPercent: percent };
     });
-    return { label: candidate.label, totalRemaining: total, segments };
+    const reset = pickReset([...candidate.byKey.values()], nowMs);
+    return {
+      label: candidate.label,
+      totalRemaining: total,
+      segments,
+      resetAtMs: reset?.resetAtMs ?? null,
+      resetLabel: reset?.resetLabel ?? null,
+    };
   };
 
   const leader = ranked[0] ?? null;
@@ -128,18 +154,10 @@ export function buildProviderSummary(
   // Only same-length siblings are offered as extra headlines. A shorter window
   // measured against the same denominator would read as a comparison it isn't.
   const extraHeadlines = leader
-    ? ranked.filter((candidate) => candidate !== leader && candidate.rank === leader.rank).map(toHeadline)
+    ? ranked
+        .filter((candidate) => candidate !== leader && candidate.rank === leader.rank)
+        .map(toHeadline)
     : [];
-
-  // Soonest *upcoming* reset when a clock is supplied: a window that already
-  // turned over would otherwise keep the footer showing a countdown that ran out.
-  const dated = leader
-    ? [...leader.byKey.values()]
-        .filter((window): window is QuotaRowWindow & { resetAtMs: number } => window.resetAtMs !== null)
-        .sort((a, b) => a.resetAtMs - b.resetAtMs)
-    : [];
-  const resetWindow =
-    (nowMs === undefined ? undefined : dated.find((window) => window.resetAtMs > nowMs)) ?? dated[0];
 
   return {
     provider,
@@ -148,7 +166,7 @@ export function buildProviderSummary(
     loadedCount,
     headline,
     extraHeadlines,
-    resetAtMs: resetWindow?.resetAtMs ?? null,
-    resetLabel: resetWindow?.resetLabel ?? null,
+    resetAtMs: headline?.resetAtMs ?? null,
+    resetLabel: headline?.resetLabel ?? null,
   };
 }

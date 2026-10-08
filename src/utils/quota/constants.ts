@@ -106,8 +106,8 @@ export const ANTIGRAVITY_REQUEST_HEADERS = {
 
 // Claude usage windows (bodies come from the backend usage cache)
 export const CLAUDE_USAGE_WINDOW_KEYS = [
-  { key: 'five_hour', id: 'five-hour', labelKey: 'claude_quota.five_hour' },
   { key: 'seven_day', id: 'seven-day', labelKey: 'claude_quota.seven_day' },
+  { key: 'five_hour', id: 'five-hour', labelKey: 'claude_quota.five_hour' },
   {
     key: 'seven_day_oauth_apps',
     id: 'seven-day-oauth-apps',

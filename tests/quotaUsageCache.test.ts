@@ -89,8 +89,8 @@ describe('usage-cache loader transport', () => {
     ]);
     for (const data of [cached, refreshed]) {
       expect(data.windows.map((window) => window.id)).toEqual([
-        'five-hour',
         'seven-day',
+        'five-hour',
         'seven-day-fable',
       ]);
       expect(data.planType).toBe('plan_max');

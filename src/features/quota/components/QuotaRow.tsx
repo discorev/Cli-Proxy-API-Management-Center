@@ -57,10 +57,19 @@ function Meter({ percent }: { percent: number | null }) {
   );
 }
 
-function ResetText({ display, soon }: { display: ResetDisplay | null; soon: boolean }) {
+function ResetText({
+  display,
+  soon,
+  prefix,
+}: {
+  display: ResetDisplay | null;
+  soon: boolean;
+  /** Muted lead-in such as "Expires:". */
+  prefix?: string;
+}) {
   if (!display) return null;
-  return (
-    <span className={styles.reset}>
+  const when = (
+    <>
       {display.relative && (
         <span
           className={soon ? `${styles.resetRelative} ${styles.resetSoon}` : styles.resetRelative}
@@ -69,6 +78,19 @@ function ResetText({ display, soon }: { display: ResetDisplay | null; soon: bool
         </span>
       )}
       <span className={styles.resetAbsolute}>{display.absolute}</span>
+    </>
+  );
+  return (
+    <span className={styles.reset}>
+      {prefix ? (
+        <>
+          <span className={styles.resetPrefix}>{prefix}</span>
+          {/* In a narrow cell only the prefix wraps, never the relative · absolute pair. */}
+          <span className={styles.resetWhen}>{when}</span>
+        </>
+      ) : (
+        when
+      )}
     </span>
   );
 }
@@ -115,6 +137,8 @@ export function QuotaRow(props: QuotaRowProps) {
     quota?.error || t('common.unknown_error')
   );
 
+  const expiresPrefix = t('quota_management.reset_expires_prefix');
+  const claudeExpiryDisplay = buildResetDisplay(null, claudeReset.expiresAtMs, now, locale);
   const nextCredit = model?.resetCredits?.credits[0];
   const creditDisplay = nextCredit
     ? buildResetDisplay(nextCredit.resetLabel, nextCredit.resetAtMs, now, locale)
@@ -198,7 +222,11 @@ export function QuotaRow(props: QuotaRowProps) {
                   </span>
                   {t('quota_management.manual_resets_unit')}
                 </span>
-                <ResetText display={creditDisplay} soon={nextCredit?.id === urgentRowId} />
+                <ResetText
+                  display={creditDisplay}
+                  soon={nextCredit?.id === urgentRowId}
+                  prefix={expiresPrefix}
+                />
               </div>
             )}
 
@@ -212,6 +240,7 @@ export function QuotaRow(props: QuotaRowProps) {
                 <span className={styles.creditsValue}>
                   <span className={styles.creditsCount}>{claudeReset.count ?? '--'}</span>
                 </span>
+                <ResetText display={claudeExpiryDisplay} soon={false} prefix={expiresPrefix} />
               </div>
             )}
           </div>

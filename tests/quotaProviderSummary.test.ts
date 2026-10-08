@@ -136,6 +136,34 @@ describe('buildProviderSummary', () => {
     expect(summary.extraHeadlines[0].totalRemaining).toBe(95);
   });
 
+  test('each headline carries its own soonest upcoming reset', () => {
+    const fable = (resetAtMs: number): ClaudeQuotaState['windows'] => [
+      {
+        id: 'seven_day_opus',
+        label: '7-day Fable 5',
+        usedPercent: 5,
+        resetLabel: '10-06 21:59',
+        resetAtMs,
+        periodHours: 168,
+      },
+    ];
+
+    const summary = buildProviderSummary(
+      'claude',
+      [
+        input('a.json', claude(2, now + 3 * DAY, fable(now - DAY))),
+        input('b.json', claude(60, now + DAY, fable(now + 2 * DAY))),
+      ],
+      t,
+      now
+    );
+
+    expect(summary.headline?.resetAtMs).toBe(now + DAY);
+    expect(summary.extraHeadlines[0].resetAtMs).toBe(now + 2 * DAY);
+    expect(summary.extraHeadlines[0].resetLabel).toBe('10-06 21:59');
+    expect(summary.resetAtMs).toBe(summary.headline?.resetAtMs ?? null);
+  });
+
   test('a provider with no credentials reports a zero denominator', () => {
     const summary = buildProviderSummary('kimi', [], t);
     expect(summary.denominator).toBe(0);

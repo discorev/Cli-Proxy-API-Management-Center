@@ -17,3 +17,18 @@ export function selectResetGrant(status: AnthropicResetGrantStatus, now: number)
     usable.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))[0]
   );
 }
+
+/** Soonest future `endsAt` (epoch ms) among grants that still have resets left. */
+export function soonestGrantExpiryMs(
+  status: AnthropicResetGrantStatus,
+  now: number
+): number | null {
+  let soonest: number | null = null;
+  for (const grant of status.grants) {
+    if (grant.resetsLeft <= 0 || !grant.endsAt) continue;
+    const ms = Date.parse(grant.endsAt);
+    if (!Number.isFinite(ms) || ms <= now) continue;
+    if (soonest === null || ms < soonest) soonest = ms;
+  }
+  return soonest;
+}

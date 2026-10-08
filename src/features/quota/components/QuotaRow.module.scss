@@ -164,6 +164,15 @@
   line-height: 1.4;
 }
 
+.resetPrefix {
+  margin-right: 4px;
+  color: var(--text-quaternary);
+}
+
+.resetWhen {
+  white-space: nowrap;
+}
+
 .resetRelative {
   color: var(--text-secondary);
   font-weight: 600;
