@@ -148,7 +148,9 @@ describe('live window overlay', () => {
     });
     if (!entry) throw new Error('entry did not normalize');
     expect(
-      buildClaudeQuotaData({ entry, meta: buildUsageMeta(entry) }, t).windows[0].usedPercent
+      buildClaudeQuotaData({ entry, meta: buildUsageMeta(entry) }, t).windows.find(
+        (window) => window.id === 'five-hour'
+      )?.usedPercent
     ).toBe(10);
 
     const data = buildClaudeQuotaData(

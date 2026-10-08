@@ -1,5 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { selectResetGrant } from '../src/features/quota/providers/claude/selectResetGrant';
+import {
+  selectResetGrant,
+  soonestGrantExpiryMs,
+} from '../src/features/quota/providers/claude/selectResetGrant';
 import {
   anthropicResetGrantBlocker,
   parseAnthropicResetGrantStatus,
@@ -133,7 +136,7 @@ test('card selection prefers usable recommendation and has deterministic fallbac
 test('Claude row claims through the backend reset route with a shared confirmation', async () => {
   const card = await Bun.file('src/features/quota/components/QuotaRow.tsx').text();
   const hook = await Bun.file('src/features/quota/providers/claude/ClaudeResetGrants.tsx').text();
-  expect(card).toContain("styles.creditsCount}>{claudeReset.count ?? '--'}");
+  expect(card).toContain('count={claudeReset.count ?? 0}');
   expect(card).toContain('disabled={claudeReset.blocked}');
   expect(card).toContain('onClick={claudeReset.confirm}');
   expect(hook).toContain('showConfirmation({');
@@ -141,4 +144,27 @@ test('Claude row claims through the backend reset route with a shared confirmati
   expect(hook).not.toContain('apiCall');
   expect(hook).not.toContain('<Modal');
   expect(hook).not.toContain('status.grants.map');
+});
+
+test('soonest grant expiry ignores past, exhausted and open-ended grants', () => {
+  const base = status();
+  const now = Date.parse('2026-10-02T12:00:00Z');
+  const at = (days: number) => new Date(now + days * 86_400_000).toISOString();
+  const grantAt = (id: string, endsAt: string | null, resetsLeft = 1) => ({
+    ...base.grants[0],
+    id,
+    endsAt,
+    resetsLeft,
+  });
+
+  const grants = [
+    grantAt('late', at(20)),
+    grantAt('soon', at(3)),
+    grantAt('past', at(-1)),
+    grantAt('spent', at(1), 0),
+    grantAt('open', null),
+  ];
+  expect(soonestGrantExpiryMs({ ...base, grants }, now)).toBe(now + 3 * 86_400_000);
+  expect(soonestGrantExpiryMs({ ...base, grants: grants.slice(2) }, now)).toBeNull();
+  expect(soonestGrantExpiryMs({ ...base, grants: [] }, now)).toBeNull();
 });

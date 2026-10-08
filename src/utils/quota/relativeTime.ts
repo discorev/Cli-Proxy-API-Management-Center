@@ -89,6 +89,12 @@ export function formatInstantShort(ms: number): string {
   });
 }
 
+/** Day only (`22/10` in en-GB, `10/22` in en-US) — region-ordered like {@link formatInstantShort}. */
+export function formatDayShort(ms: number): string {
+  if (!Number.isFinite(ms)) return '-';
+  return new Date(ms).toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' });
+}
+
 export interface ResetDisplay {
   absolute: string;
   /** Null when no usable instant was available — render the absolute half alone. */

@@ -10,7 +10,7 @@ import { getQuotaCacheKey } from '@/utils/quota/identity';
 import { resetOutcomeText, resetOutcomeType } from '../../resetOutcome';
 import { captureResetSession, isResetSessionCurrent, settleResetOutcome } from '../../resetSession';
 import { CLAUDE_CONFIG, resetClaudeGrant } from './data';
-import { selectResetGrant } from './selectResetGrant';
+import { selectResetGrant, soonestGrantExpiryMs } from './selectResetGrant';
 
 /**
  * Grant status comes from the backend's reset inventory already in the card state
@@ -84,6 +84,7 @@ export function useClaudeResetGrants(
 
   return {
     count: status?.grants.reduce((sum, grant) => sum + grant.resetsLeft, 0) ?? null,
+    expiresAtMs: status ? soonestGrantExpiryMs(status, now) : null,
     busy,
     blocked,
     confirm,

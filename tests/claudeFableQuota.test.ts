@@ -182,8 +182,22 @@ describe('Claude Fable quota', () => {
     const windows = buildClaudeQuotaWindows(payload, t);
 
     expect(windows.map(({ id, usedPercent }) => ({ id, usedPercent }))).toEqual([
-      { id: 'five-hour', usedPercent: 10 },
       { id: 'seven-day', usedPercent: 20 },
+      { id: 'five-hour', usedPercent: 10 },
+    ]);
+  });
+
+  test('orders windows 7-day, 5-hour, then the per-model windows', () => {
+    const payload = {
+      five_hour: { utilization: 10, resets_at: null },
+      seven_day: { utilization: 20, resets_at: null },
+      seven_day_opus: { utilization: 30, resets_at: null },
+    } as unknown as ClaudeUsagePayload;
+
+    expect(buildClaudeQuotaWindows(payload, t).map((window) => window.id)).toEqual([
+      'seven-day',
+      'five-hour',
+      'seven-day-opus',
     ]);
   });
 });

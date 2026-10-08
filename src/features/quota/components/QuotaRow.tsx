@@ -57,10 +57,19 @@ function Meter({ percent }: { percent: number | null }) {
   );
 }
 
-function ResetText({ display, soon }: { display: ResetDisplay | null; soon: boolean }) {
+function ResetText({
+  display,
+  soon,
+  prefix,
+}: {
+  display: ResetDisplay | null;
+  soon: boolean;
+  /** Muted lead-in such as "Expires:". */
+  prefix?: string;
+}) {
   if (!display) return null;
-  return (
-    <span className={styles.reset}>
+  const when = (
+    <>
       {display.relative && (
         <span
           className={soon ? `${styles.resetRelative} ${styles.resetSoon}` : styles.resetRelative}
@@ -69,7 +78,33 @@ function ResetText({ display, soon }: { display: ResetDisplay | null; soon: bool
         </span>
       )}
       <span className={styles.resetAbsolute}>{display.absolute}</span>
+    </>
+  );
+  return (
+    <span className={styles.reset}>
+      {prefix ? (
+        <>
+          <span className={styles.resetPrefix}>{prefix}</span>
+          {/* In a narrow cell only the prefix wraps, never the relative · absolute pair. */}
+          <span className={styles.resetWhen}>{when}</span>
+        </>
+      ) : (
+        when
+      )}
     </span>
+  );
+}
+
+/** `Resets remaining: 1` — one line, shared by every provider's reset cell. */
+function ResetCount({ label, count }: { label: string; count: number | string }) {
+  const { t } = useTranslation();
+  return (
+    <div className={styles.windowHead}>
+      <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
+        {t('quota_management.label_colon', { label })}
+        <span className={styles.creditsCount}>{count}</span>
+      </span>
+    </div>
   );
 }
 
@@ -115,6 +150,8 @@ export function QuotaRow(props: QuotaRowProps) {
     quota?.error || t('common.unknown_error')
   );
 
+  const expiresPrefix = t('quota_management.reset_expires_prefix');
+  const claudeExpiryDisplay = buildResetDisplay(null, claudeReset.expiresAtMs, now, locale);
   const nextCredit = model?.resetCredits?.credits[0];
   const creditDisplay = nextCredit
     ? buildResetDisplay(nextCredit.resetLabel, nextCredit.resetAtMs, now, locale)
@@ -184,34 +221,23 @@ export function QuotaRow(props: QuotaRowProps) {
                 </div>
               );
             })}
-
             {model.resetCredits && (
-              <div className={styles.window}>
-                <div className={styles.windowHead}>
-                  <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
-                    {t('codex_quota.reset_credits_label')}
-                  </span>
-                </div>
-                <span className={styles.creditsValue}>
-                  <span className={styles.creditsCount}>
-                    {model.resetCredits.available ?? '--'}
-                  </span>
-                  {t('quota_management.manual_resets_unit')}
-                </span>
-                <ResetText display={creditDisplay} soon={nextCredit?.id === urgentRowId} />
+              <div className={`${styles.window} ${styles.resetSlot}`}>
+                <ResetCount
+                  label={t('claude_reset.remaining')}
+                  count={model.resetCredits.available ?? '--'}
+                />
+                <ResetText
+                  display={creditDisplay}
+                  soon={nextCredit?.id === urgentRowId}
+                  prefix={expiresPrefix}
+                />
               </div>
             )}
-
             {entry.type === 'claude' && (
-              <div className={styles.window}>
-                <div className={styles.windowHead}>
-                  <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
-                    {t('claude_reset.remaining')}
-                  </span>
-                </div>
-                <span className={styles.creditsValue}>
-                  <span className={styles.creditsCount}>{claudeReset.count ?? '--'}</span>
-                </span>
+              <div className={`${styles.window} ${styles.resetSlot}`}>
+                <ResetCount label={t('claude_reset.remaining')} count={claudeReset.count ?? 0} />
+                <ResetText display={claudeExpiryDisplay} soon={false} prefix={expiresPrefix} />
               </div>
             )}
           </div>

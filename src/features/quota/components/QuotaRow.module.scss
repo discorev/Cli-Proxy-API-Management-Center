@@ -9,7 +9,8 @@
 
 .row {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) auto;
+  /* 身份 | 窗口（含重置格）| 动作（两枚按钮的最小宽度，使各行主体宽度一致） */
+  grid-template-columns: 260px minmax(0, 1fr) minmax(230px, auto);
   align-items: center;
   gap: 8px 16px;
   min-height: 58px;
@@ -87,7 +88,7 @@
 
 .windows {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 6px 18px;
   min-width: 0;
 }
@@ -97,6 +98,14 @@
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+
+/* 重置格：固定在窗口网格最后一条显式轨道的首行；各行窗口区同宽，所以它跨行对齐，
+ * 标签也与窗口标签同一水平线。auto-fill 的轨道是显式轨道，-2 / -1 即最后一条。
+ * 窗口自动填入其余格子。 */
+.resetSlot {
+  grid-column: -2 / -1;
+  grid-row: 1;
 }
 
 /* 最后一小时内恢复的窗口：左侧一道警示记号，不改数字颜色 */
@@ -164,6 +173,15 @@
   line-height: 1.4;
 }
 
+.resetPrefix {
+  margin-right: 4px;
+  color: var(--text-quaternary);
+}
+
+.resetWhen {
+  white-space: nowrap;
+}
+
 .resetRelative {
   color: var(--text-secondary);
   font-weight: 600;
@@ -189,18 +207,10 @@
   color: var(--text-secondary);
 }
 
-.creditsValue {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 5px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
 .creditsCount {
+  margin-left: 4px;
   font-family: $font-mono;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
@@ -406,6 +416,12 @@
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     padding: 11px 10px;
+  }
+
+  /* 窄屏：重置格不再钉在末列，跟在窗口之后 */
+  .resetSlot {
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
 
   .actions {

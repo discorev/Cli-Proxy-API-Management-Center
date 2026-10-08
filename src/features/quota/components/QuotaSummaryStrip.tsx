@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildResetDisplay } from '@/utils/quota';
+import { buildResetDisplay, type ResetDisplay } from '@/utils/quota';
 import { useNow } from '@/hooks/useNow';
 import type { ResolvedTheme } from '@/types';
 import {
@@ -61,6 +61,57 @@ function SegmentBar({ headline }: { headline: QuotaSummaryHeadline }) {
 const formatTotal = (total: number | null): string =>
   total === null ? '--' : `${Math.round(total)}%`;
 
+type HeadlineBlockProps = {
+  headline: QuotaSummaryHeadline | null;
+  denominator: number;
+  credentialCount: number;
+  /** False while no credential has loaded: the footer says so instead of a reset. */
+  loaded: boolean;
+  reset: ResetDisplay | null;
+};
+
+/** Big figure, segmented bar and reset footer — shared by the lead and extra headlines. */
+function HeadlineBlock({
+  headline,
+  denominator,
+  credentialCount,
+  loaded,
+  reset,
+}: HeadlineBlockProps) {
+  const { t } = useTranslation();
+  return (
+    <>
+      <div className={styles.figure}>
+        <span className={styles.total}>{formatTotal(headline?.totalRemaining ?? null)}</span>
+        <span className={styles.denominator}>
+          {t('quota_management.summary_of', { total: denominator })}
+        </span>
+      </div>
+
+      {headline ? (
+        <SegmentBar headline={headline} />
+      ) : (
+        <div className={styles.segments}>
+          {Array.from({ length: Math.max(1, credentialCount) }, (_, index) => (
+            <span key={index} className={`${styles.segment} ${styles.segmentIdle}`} />
+          ))}
+        </div>
+      )}
+
+      <div className={styles.footer}>
+        {!loaded || !reset ? (
+          <span className={styles.footerMuted}>{t('quota_management.summary_not_loaded')}</span>
+        ) : (
+          <>
+            {reset.relative && <span className={styles.footerRelative}>{reset.relative}</span>}
+            <span className={styles.footerAbsolute}>{reset.absolute}</span>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
 export function QuotaSummaryStrip({ summaries, resolvedTheme }: QuotaSummaryStripProps) {
   const { t, i18n } = useTranslation();
   const now = useNow();
@@ -68,18 +119,16 @@ export function QuotaSummaryStrip({ summaries, resolvedTheme }: QuotaSummaryStri
 
   if (summaries.length === 0) return null;
 
+  const resetOf = (headline: QuotaSummaryHeadline | null): ResetDisplay | null =>
+    headline
+      ? buildResetDisplay(headline.resetLabel, headline.resetAtMs, now, i18n.resolvedLanguage)
+      : null;
+
   return (
     <div className={styles.strip}>
       {summaries.map((summary) => {
         const iconSrc = getAuthFileIcon(summary.provider, resolvedTheme);
         const typeLabel = getTypeLabel(t, summary.provider);
-        const reset = buildResetDisplay(
-          summary.resetLabel,
-          summary.resetAtMs,
-          now,
-          i18n.resolvedLanguage
-        );
-        const isExpanded = expanded[summary.provider] ?? false;
 
         return (
           <article key={summary.provider} className={styles.card}>
@@ -104,66 +153,47 @@ export function QuotaSummaryStrip({ summaries, resolvedTheme }: QuotaSummaryStri
               </span>
             </header>
 
-            <div className={styles.headlineLabel}>{summary.headline?.label ?? ' '}</div>
+            <div className={styles.headlineLabel}>{summary.headline?.label ?? ' '}</div>
 
-            <div className={styles.figure}>
-              <span className={styles.total}>{formatTotal(summary.headline?.totalRemaining ?? null)}</span>
-              <span className={styles.denominator}>
-                {t('quota_management.summary_of', { total: summary.denominator })}
-              </span>
-            </div>
+            <HeadlineBlock
+              headline={summary.headline}
+              denominator={summary.denominator}
+              credentialCount={summary.credentialCount}
+              loaded={summary.loadedCount > 0}
+              reset={resetOf(summary.headline)}
+            />
 
-            {summary.headline ? (
-              <SegmentBar headline={summary.headline} />
-            ) : (
-              <div className={styles.segments}>
-                {Array.from({ length: Math.max(1, summary.credentialCount) }, (_, index) => (
-                  <span key={index} className={`${styles.segment} ${styles.segmentIdle}`} />
-                ))}
-              </div>
-            )}
-
-            <div className={styles.footer}>
-              {summary.loadedCount === 0 || !reset ? (
-                <span className={styles.footerMuted}>
-                  {t('quota_management.summary_not_loaded')}
-                </span>
-              ) : (
-                <>
-                  {reset.relative && <span className={styles.footerRelative}>{reset.relative}</span>}
-                  <span className={styles.footerAbsolute}>{reset.absolute}</span>
-                </>
-              )}
-            </div>
-
-            {summary.extraHeadlines.length > 0 && (
-              <div className={styles.extras}>
-                <button
-                  type="button"
-                  className={styles.extrasToggle}
-                  onClick={() =>
-                    setExpanded((prev) => ({ ...prev, [summary.provider]: !isExpanded }))
-                  }
-                  aria-expanded={isExpanded}
-                >
-                  {isExpanded
-                    ? t('quota_management.summary_hide_more')
-                    : t('quota_management.summary_show_more')}
-                </button>
-                {isExpanded &&
-                  summary.extraHeadlines.map((extra) => (
-                    <div key={extra.label} className={styles.extraRow}>
-                      <div className={styles.extraHead}>
-                        <span className={styles.extraLabel}>{extra.label}</span>
-                        <span className={styles.extraTotal}>
-                          {formatTotal(extra.totalRemaining)}
-                        </span>
-                      </div>
-                      <SegmentBar headline={extra} />
-                    </div>
-                  ))}
-              </div>
-            )}
+            {summary.extraHeadlines.map((extra) => {
+              const key = `${summary.provider}:${extra.label}`;
+              const isExpanded = expanded[key] ?? false;
+              return (
+                <div key={extra.label} className={styles.extra}>
+                  <div className={styles.extraToggleLine}>
+                    <span className={styles.extraLabel}>{extra.label}</span>
+                    <span className={styles.extraTotal}>{formatTotal(extra.totalRemaining)}</span>
+                    <button
+                      type="button"
+                      className={styles.extraToggle}
+                      onClick={() => setExpanded((prev) => ({ ...prev, [key]: !isExpanded }))}
+                      aria-expanded={isExpanded}
+                    >
+                      {isExpanded
+                        ? t('quota_management.summary_hide')
+                        : t('quota_management.summary_show')}
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <HeadlineBlock
+                      headline={extra}
+                      denominator={summary.denominator}
+                      credentialCount={summary.credentialCount}
+                      loaded={summary.loadedCount > 0}
+                      reset={resetOf(extra)}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </article>
         );
       })}

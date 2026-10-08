@@ -20,6 +20,8 @@ const summary = (overrides: Partial<QuotaProviderSummary> = {}): QuotaProviderSu
   loadedCount: 2,
   headline: {
     label: '7-day limit',
+    resetAtMs: Date.now() + 86_400_000,
+    resetLabel: '09-08 21:59',
     totalRemaining: 138,
     segments: [
       { key: 'a', displayName: 'claude-t•••@l•••.dev.json', remainingPercent: 98 },
@@ -72,12 +74,19 @@ describe('QuotaSummaryStrip', () => {
             label: '7-day Fable 5',
             totalRemaining: 95,
             segments: [{ key: 'a', displayName: 'a', remainingPercent: 95 }],
+            resetAtMs: Date.now() + 2 * 86_400_000,
+            resetLabel: '10/06, 21:59',
           },
         ],
       }),
     ]);
-    expect(markup).toContain('Show more');
-    expect(markup).not.toContain('7-day Fable 5');
+    expect(markup).toContain('7-day Fable 5');
+    expect(markup).toContain('95%');
+    expect(markup).toContain('>Show<');
+    expect(markup).toContain('aria-expanded="false"');
+    // Collapsed: the toggle line is there, the big figure and its footer are not.
+    expect(markup).not.toContain('10/06, 21:59');
+    expect(markup.match(/of 200%/g)).toHaveLength(1);
   });
 
   test('renders nothing at all when no provider has credentials', () => {

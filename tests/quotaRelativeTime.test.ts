@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   buildResetDisplay,
+  formatDayShort,
   formatInstantShort,
   formatQuotaResetTime,
   formatRelativeInstant,
@@ -82,6 +83,20 @@ describe('formatInstantShort', () => {
   });
 });
 
+describe('formatDayShort', () => {
+  test('is a two-digit day and month with no year, in whatever order the region uses', () => {
+    const text = formatDayShort(new Date(2026, 9, 22, 17, 0).getTime());
+    expect(text).toMatch(/^\d{2}\D\d{2}$/);
+    expect(text).toContain('22');
+    expect(text).toContain('10');
+    expect(text).not.toContain('2026');
+  });
+
+  test('degrades to a dash rather than "Invalid Date"', () => {
+    expect(formatDayShort(Number.NaN)).toBe('-');
+  });
+});
+
 describe('buildResetDisplay', () => {
   test('pairs a baked absolute label with a computed relative one', () => {
     const display = buildResetDisplay('08-13 14:30', NOW + 11 * DAY_MS, NOW, 'en');
@@ -122,6 +137,8 @@ describe('buildResetDisplay', () => {
 
   test('rejects a non-finite instant', () => {
     expect(buildResetDisplay(undefined, Number.NaN, NOW, 'en')).toBeNull();
-    expect(buildResetDisplay('08-13 14:30', Number.POSITIVE_INFINITY, NOW, 'en')?.relative).toBeNull();
+    expect(
+      buildResetDisplay('08-13 14:30', Number.POSITIVE_INFINITY, NOW, 'en')?.relative
+    ).toBeNull();
   });
 });
