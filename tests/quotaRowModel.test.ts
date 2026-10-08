@@ -223,6 +223,16 @@ describe('toQuotaRowModel', () => {
     expect(model?.planNote).not.toContain('20:59');
   });
 
+  test('Codex compacts the fixed-point credit balance', () => {
+    const quota = {
+      status: 'success',
+      planType: 'pro',
+      creditBalance: '62500.0000000',
+      windows: [],
+    } as unknown as CodexQuotaState;
+    expect(toQuotaRowModel('codex', quota, t)?.planNote).toBe('codex_quota.credits_short 62.5K');
+  });
+
   test('xAI prefers the subscription label and hides an empty monthly cycle on weekly plans', () => {
     const quota: XaiQuotaState = {
       status: 'success',

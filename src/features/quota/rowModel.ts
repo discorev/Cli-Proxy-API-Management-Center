@@ -32,6 +32,7 @@ import {
   parseIsoToMs,
   resolveResetMs,
 } from '@/utils/quota';
+import { formatCompactNumber } from '@/utils/format';
 import { XAI_WEEKLY_ROW_ID } from './resetSchedule';
 import type { QuotaProviderType } from './providers/types';
 
@@ -140,6 +141,14 @@ function codexPlanLabel(planType: string | null | undefined, t: TFunction): stri
   return planType || normalized;
 }
 
+// The API sends the balance as a fixed-point string ("62500.0000000"); compact
+// it (62.5K) so it fits the plan line. Non-numeric values pass through.
+function formatCreditBalance(raw: string | null): string | null {
+  if (raw === null || raw.trim() === '') return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? formatCompactNumber(value) : raw;
+}
+
 const CODEX_ROW_WINDOW_IDS = new Set(['weekly', 'monthly']);
 
 function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
@@ -150,7 +159,7 @@ function codexRowModel(quota: CodexQuotaState, t: TFunction): QuotaRowModel {
   const availableCount = quota.rateLimitResetCreditsAvailableCount;
   const creditBalance = quota.creditsUnlimited
     ? t('codex_quota.credit_unlimited')
-    : (quota.creditBalance ?? null);
+    : formatCreditBalance(quota.creditBalance ?? null);
   const planNotes = [
     // Short forms: the plan line shares a 260px column with the tier and is
     // truncated past that (the full text stays in the hover title).
