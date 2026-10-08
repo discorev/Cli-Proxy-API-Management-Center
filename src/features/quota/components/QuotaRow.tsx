@@ -131,6 +131,9 @@ export function QuotaRow(props: QuotaRowProps) {
     quota !== undefined &&
     Boolean(adapter.canResetQuota?.(quota));
 
+  // The reset cell sits in its own column, so it follows the same gate as the windows.
+  const windowsModel = status === 'success' && model && model.windows.length > 0 ? model : null;
+
   const errorMessage = resolveQuotaErrorMessage(
     t,
     quota?.errorStatus,
@@ -208,8 +211,27 @@ export function QuotaRow(props: QuotaRowProps) {
                 </div>
               );
             })}
+          </div>
+        ) : (
+          <div className={styles.message}>
+            {model?.message ?? t('quota_management.row_not_loaded')}
+          </div>
+        )}
+        {usage && (
+          <div className={styles.usageNotes}>
+            <QuotaUsageNotes
+              usage={usage}
+              noteClassName={styles.usageNote}
+              errorClassName={styles.creditsError}
+            />
+          </div>
+        )}
+      </div>
 
-            {model.resetCredits && (
+      <div className={styles.resetColumn}>
+        {windowsModel && (
+          <>
+            {windowsModel.resetCredits && (
               <div className={styles.window}>
                 <div className={styles.windowHead}>
                   <span className={`${styles.windowLabel} ${styles.creditsLabel}`}>
@@ -218,7 +240,7 @@ export function QuotaRow(props: QuotaRowProps) {
                 </div>
                 <span className={styles.creditsValue}>
                   <span className={styles.creditsCount}>
-                    {model.resetCredits.available ?? '--'}
+                    {windowsModel.resetCredits.available ?? '--'}
                   </span>
                   {t('quota_management.manual_resets_unit')}
                 </span>
@@ -238,25 +260,12 @@ export function QuotaRow(props: QuotaRowProps) {
                   </span>
                 </div>
                 <span className={styles.creditsValue}>
-                  <span className={styles.creditsCount}>{claudeReset.count ?? '--'}</span>
+                  <span className={styles.creditsCount}>{claudeReset.count ?? 0}</span>
                 </span>
                 <ResetText display={claudeExpiryDisplay} soon={false} prefix={expiresPrefix} />
               </div>
             )}
-          </div>
-        ) : (
-          <div className={styles.message}>
-            {model?.message ?? t('quota_management.row_not_loaded')}
-          </div>
-        )}
-        {usage && (
-          <div className={styles.usageNotes}>
-            <QuotaUsageNotes
-              usage={usage}
-              noteClassName={styles.usageNote}
-              errorClassName={styles.creditsError}
-            />
-          </div>
+          </>
         )}
       </div>
 

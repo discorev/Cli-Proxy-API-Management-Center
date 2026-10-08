@@ -13,7 +13,7 @@ import i18n from '@/i18n';
 import { QuotaRow } from '@/features/quota/components/QuotaRow';
 import { redactIdentity } from '@/utils/quota/redact';
 import type { QuotaFileEntry } from '@/features/quota/logic';
-import type { AuthFileItem, ClaudeQuotaState } from '@/types';
+import type { AuthFileItem, ClaudeQuotaState, CodexQuotaState } from '@/types';
 
 const FILE_NAME = 'claude-theo@lambda.dev.json';
 
@@ -81,5 +81,78 @@ describe('QuotaRow', () => {
     const markup = render({ quota: { status: 'error', error: 'upstream exploded' } });
     expect(markup).toContain('upstream exploded');
     expect(markup).toContain('role="alert"');
+  });
+
+  // Class names are not resolvable under bun:test (the scss import is a string), so the
+  // row's columns are addressed by position: identity | body | reset | actions.
+  describe('reset column', () => {
+    const topLevelChildren = (markup: string): string[] => {
+      const children: string[] = [];
+      const tag = /<(\/?)div\b[^>]*>/g;
+      let depth = 0;
+      let start = 0;
+      for (let match = tag.exec(markup); match; match = tag.exec(markup)) {
+        if (match[1] === '/') {
+          depth -= 1;
+          if (depth === 1) children.push(markup.slice(start, tag.lastIndex));
+        } else {
+          depth += 1;
+          if (depth === 2) start = match.index;
+        }
+      }
+      return children;
+    };
+
+    const codexQuota: CodexQuotaState = {
+      status: 'success',
+      planType: 'plus',
+      windows: [
+        {
+          id: 'weekly',
+          label: 'Weekly limit',
+          usedPercent: 12,
+          resetLabel: '',
+          resetAtMs: Date.now() + 86_400_000,
+          periodHours: 168,
+        },
+      ],
+    };
+    const codexEntry: QuotaFileEntry = {
+      file: { name: 'codex-a.json', provider: 'codex' } as AuthFileItem,
+      type: 'codex',
+    };
+
+    test('the Claude reset cell is a sibling of the windows, not inside them', () => {
+      const [identity, body, resetColumn, actions] = topLevelChildren(render());
+      expect(topLevelChildren(render())).toHaveLength(4);
+      expect(identity).toContain(FILE_NAME);
+      expect(body).toContain('7-day limit');
+      expect(body).not.toContain('Resets remaining');
+      expect(resetColumn).toContain('Resets remaining');
+      expect(actions).toContain('Refresh quota');
+    });
+
+    test('Claude shows 0, not a dash, when the proxy sent no reset inventory', () => {
+      const markup = render({ quota: { ...quota, resetGrants: null } });
+      const resetColumn = topLevelChildren(markup)[2];
+      expect(resetColumn).toContain('<span>0</span>');
+      expect(resetColumn).not.toContain('--');
+    });
+
+    test('a provider without resets still renders an empty reset column', () => {
+      const markup = render({ entry: codexEntry, quota: codexQuota });
+      const children = topLevelChildren(markup);
+      expect(children).toHaveLength(4);
+      expect(children[1]).toContain('Weekly limit');
+      expect(children[2]).toBe('<div></div>');
+    });
+
+    test('idle, loading and error rows keep the column, empty', () => {
+      for (const state of [undefined, { status: 'loading' }, { status: 'error', error: 'boom' }]) {
+        const children = topLevelChildren(render({ quota: state as never }));
+        expect(children).toHaveLength(4);
+        expect(children[2]).toBe('<div></div>');
+      }
+    });
   });
 });

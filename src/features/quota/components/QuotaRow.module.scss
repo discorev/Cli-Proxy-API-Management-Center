@@ -9,7 +9,8 @@
 
 .row {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr) auto;
+  /* 身份 | 窗口 | 重置（定宽，容得下 "Expires: in 14 days · 22/10, 17:00" 一行）| 动作（两枚按钮的最小宽度） */
+  grid-template-columns: 260px minmax(0, 1fr) 240px minmax(230px, auto);
   align-items: center;
   gap: 8px 16px;
   min-height: 58px;
@@ -87,7 +88,7 @@
 
 .windows {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 6px 18px;
   min-width: 0;
 }
@@ -96,6 +97,11 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+}
+
+/* 重置列：每行都渲染（无重置信息时为空），保证所有行的列位置一致 */
+.resetColumn {
   min-width: 0;
 }
 
@@ -415,6 +421,11 @@
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     padding: 11px 10px;
+  }
+
+  /* 窄屏单列堆叠：空的重置列不再占位 */
+  .resetColumn:empty {
+    display: none;
   }
 
   .actions {
