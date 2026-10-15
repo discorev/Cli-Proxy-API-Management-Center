@@ -66,7 +66,7 @@ export function AuthFileQuotaSection(props: AuthFileQuotaSectionProps) {
     (state) => state[adapter.storeSetter] as unknown as QuotaMapUpdater
   );
 
-  // Claude/Codex cards re-read the usage cache (GET) once per mount and credential;
+  // Usage-cache cards re-read the cache (GET) once per mount and credential;
   // a card mounted before the connection is ready reads once it becomes usable.
   const cacheReadKeyRef = useRef<string | null>(null);
   useEffect(() => {

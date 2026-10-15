@@ -1,21 +1,18 @@
 /**
- * xAI 额度数据层：免费档账单 + 付费档健康探测回退。
- * React-free / SCSS-free —— 由 tests/xaiPaidQuotaFallback.test.ts 直接消费。
+ * xAI quota data layer. Grok subscription credentials read the backend usage
+ * cache (weekly credits, monthly billing and plan); recognized paid API
+ * credentials keep the direct health probe, which reports no quota numbers.
+ * React-free / SCSS-free; consumed directly by tests.
  */
 
 import type { TFunction } from 'i18next';
-import type { AuthFileItem, XaiBillingSummary, XaiQuotaState } from '@/types';
+import type { AuthFileItem, QuotaUsageMeta, XaiBillingSummary, XaiQuotaState } from '@/types';
 import { apiCallApi, getApiCallErrorMessage } from '@/services/api';
 import {
   XAI_API_CHAT_URL,
   XAI_API_ME_URL,
   XAI_API_REQUEST_HEADERS,
-  XAI_BILLING_MONTHLY_URL,
-  XAI_BILLING_WEEKLY_URL,
-  XAI_SETTINGS_URL,
-  XAI_USER_URL,
   XAI_PAID_HEALTH_MODEL,
-  XAI_REQUEST_HEADERS,
   normalizeStringValue,
   parseXaiBillingPayload,
   buildXaiBillingSummary,
@@ -28,78 +25,17 @@ import {
   isXaiFile,
 } from '@/utils/quota';
 import { normalizeAuthIndex } from '@/utils/authIndex';
+import { isRecord } from '@/utils/helpers';
 import type { QuotaProviderData } from '../types';
+import { loadUsageEntry, type UsageCacheResult, type UsageLoadMode } from '../usageCache';
 
 const XAI_PAID_HEALTH_REQUEST_TIMEOUT_MS = 15000;
-const XAI_SUBSCRIPTION_REQUEST_TIMEOUT_MS = 8000;
 
-const toXaiRecord = (value: unknown): Record<string, unknown> | null => {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-};
-
-const resolveXaiUserId = (file: AuthFileItem): string | null => {
-  const metadata = toXaiRecord(file.metadata);
-  const attributes = toXaiRecord(file.attributes);
-  const oauth = toXaiRecord(file.oauth ?? metadata?.oauth ?? attributes?.oauth);
-  const user = toXaiRecord(file.user ?? metadata?.user ?? attributes?.user);
-
-  const candidates = [
-    file.sub,
-    file.subject,
-    file.user_id,
-    file.userId,
-    metadata?.sub,
-    metadata?.subject,
-    metadata?.user_id,
-    metadata?.userId,
-    attributes?.sub,
-    attributes?.subject,
-    attributes?.user_id,
-    attributes?.userId,
-    oauth?.sub,
-    oauth?.subject,
-    user?.sub,
-    user?.id,
-  ];
-
-  for (const candidate of candidates) {
-    const userId = normalizeStringValue(candidate);
-    if (userId) return userId;
-  }
-
-  return null;
-};
-
-const buildXaiRequestHeaders = (file: AuthFileItem): Record<string, string> => {
-  const headers: Record<string, string> = { ...XAI_REQUEST_HEADERS };
-  const userId = resolveXaiUserId(file);
-  if (userId) {
-    headers['x-userid'] = userId;
-  }
-  return headers;
-};
-
-const requestXaiBilling = async (
-  authIndex: string,
-  url: string,
-  header: Record<string, string>
-): Promise<XaiBillingSummary | null> => {
-  const result = await apiCallApi.request({
-    authIndex,
-    method: 'GET',
-    url,
-    header,
-  });
-
-  if (result.statusCode < 200 || result.statusCode >= 300) {
-    throw createStatusError(getApiCallErrorMessage(result), result.statusCode);
-  }
-
-  const payload = parseXaiBillingPayload(result.body ?? result.bodyText);
-  return buildXaiBillingSummary(payload?.config);
-};
+export interface XaiQuotaResult {
+  billing: XaiBillingSummary | null;
+  /** Absent for paid API credentials, which do not use the usage cache. */
+  usage?: QuotaUsageMeta;
+}
 
 const requestXaiPaidHealth = async (authIndex: string): Promise<XaiBillingSummary> => {
   const [profileRequest, chatRequest] = await Promise.allSettled([
@@ -149,22 +85,17 @@ const requestXaiPaidHealth = async (authIndex: string): Promise<XaiBillingSummar
   return buildXaiPaidHealthSummary(profile);
 };
 
-const readJsonRecord = (result: { statusCode: number; body?: unknown; bodyText?: string }) => {
-  if (result.statusCode < 200 || result.statusCode >= 300) return null;
-  const body = result.body ?? result.bodyText;
-  if (typeof body === 'string') {
-    try {
-      const parsed = JSON.parse(body) as unknown;
-      return toXaiRecord(parsed);
-    } catch {
-      return null;
-    }
-  }
-  return toXaiRecord(body);
+/** Paid API credentials are probed directly; the probe sends a 1-token chat request. */
+const fetchXaiPaidHealth = async (file: AuthFileItem, t: TFunction): Promise<XaiQuotaResult> => {
+  const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
+  if (!authIndex) throw new Error(t('xai_quota.missing_auth_index'));
+  return { billing: await requestXaiPaidHealth(authIndex) };
 };
 
-const readPlanField = (record: Record<string, unknown> | null, keys: string[]) => {
-  if (!record) return null;
+const summarizeBillingBody = (body: unknown): XaiBillingSummary | null =>
+  body === undefined ? null : buildXaiBillingSummary(parseXaiBillingPayload(body)?.config);
+
+const readPlanField = (record: Record<string, unknown>, keys: string[]): string | null => {
   for (const key of keys) {
     const value = normalizeStringValue(record[key]);
     if (value) return value;
@@ -172,83 +103,55 @@ const readPlanField = (record: Record<string, unknown> | null, keys: string[]) =
   return null;
 };
 
-const requestXaiSubscription = async (authIndex: string) => {
-  const header = { ...XAI_REQUEST_HEADERS };
-  const [userResult, settingsResult] = await Promise.allSettled([
-    apiCallApi.request(
-      { authIndex, method: 'GET', url: XAI_USER_URL, header },
-      { timeout: XAI_SUBSCRIPTION_REQUEST_TIMEOUT_MS }
-    ),
-    apiCallApi.request(
-      { authIndex, method: 'GET', url: XAI_SETTINGS_URL, header },
-      { timeout: XAI_SUBSCRIPTION_REQUEST_TIMEOUT_MS }
-    ),
-  ]);
-  const user = userResult.status === 'fulfilled' ? readJsonRecord(userResult.value) : null;
-  const settings =
-    settingsResult.status === 'fulfilled' ? readJsonRecord(settingsResult.value) : null;
+/** `raw.subscription` is the backend's sanitized tier/display pair. */
+const parseXaiSubscriptionPlan = (subscription: unknown) => {
+  if (!isRecord(subscription)) return null;
   return resolveXaiSubscriptionPlan(
-    readPlanField(user, ['subscriptionTier', 'subscription_tier']),
-    readPlanField(settings, ['subscription_tier_display', 'subscriptionTierDisplay'])
+    readPlanField(subscription, ['subscriptionTier', 'subscription_tier']),
+    readPlanField(subscription, ['subscriptionTierDisplay', 'subscription_tier_display'])
   );
 };
 
-const withSubscriptionPlan = (
-  summary: XaiBillingSummary,
-  plan: { label: string; tier: 'elite' | 'premium' | 'standard' } | null
-): XaiBillingSummary => {
-  if (!plan) return summary;
-  return { ...summary, planLabel: plan.label, planTier: plan.tier };
+/**
+ * Builds the card from one cached entry: `raw.usage` is the weekly credits body,
+ * `raw.billing` the monthly one. Their periods stay separate (see
+ * mergeXaiBillingSummaries); a missing body yields no billing.
+ */
+export const buildXaiQuotaResult = ({ entry, meta }: UsageCacheResult): XaiQuotaResult => {
+  const summary = mergeXaiBillingSummaries(
+    summarizeBillingBody(entry.raw.usage),
+    summarizeBillingBody(entry.raw.billing)
+  );
+  const plan = parseXaiSubscriptionPlan(entry.raw.subscription);
+  return {
+    billing: summary && plan ? { ...summary, planLabel: plan.label, planTier: plan.tier } : summary,
+    usage: meta,
+  };
 };
 
-const fetchXaiQuota = async (file: AuthFileItem, t: TFunction): Promise<XaiBillingSummary> => {
-  const rawAuthIndex = file['auth_index'] ?? file.authIndex;
-  const authIndex = normalizeAuthIndex(rawAuthIndex);
-  if (!authIndex) {
-    throw new Error(t('xai_quota.missing_auth_index'));
-  }
+const loadXaiQuota =
+  (mode: UsageLoadMode) =>
+  async (file: AuthFileItem, t: TFunction, previous?: XaiQuotaState): Promise<XaiQuotaResult> => {
+    if (isPaidXaiAuthFile(file)) return fetchXaiPaidHealth(file, t);
+    return buildXaiQuotaResult(
+      await loadUsageEntry(file, t, 'xai_quota', mode, {
+        previousFetchedAtMs: previous?.usage?.fetchedAtMs,
+      })
+    );
+  };
 
-  if (isPaidXaiAuthFile(file)) {
-    return requestXaiPaidHealth(authIndex);
-  }
-
-  const requestHeader = buildXaiRequestHeaders(file);
-  const [weeklyResult, monthlyResult] = await Promise.allSettled([
-    requestXaiBilling(authIndex, XAI_BILLING_WEEKLY_URL, requestHeader),
-    requestXaiBilling(authIndex, XAI_BILLING_MONTHLY_URL, requestHeader),
-  ]);
-  const weeklySummary = weeklyResult.status === 'fulfilled' ? weeklyResult.value : null;
-  const monthlySummary = monthlyResult.status === 'fulfilled' ? monthlyResult.value : null;
-  const summary = mergeXaiBillingSummaries(weeklySummary, monthlySummary);
-  if (summary) return summary;
-
-  const billingError =
-    weeklyResult.status === 'rejected' && monthlyResult.status === 'rejected'
-      ? weeklyResult.reason
-      : new Error(t('xai_quota.empty_data'));
-
-  try {
-    return await requestXaiPaidHealth(authIndex);
-  } catch {
-    // Preserve the original free billing error when neither account mode can be queried.
-    throw billingError;
-  }
-};
-
-export const XAI_CONFIG: QuotaProviderData<XaiQuotaState, XaiBillingSummary> = {
+export const XAI_CONFIG: QuotaProviderData<XaiQuotaState, XaiQuotaResult> = {
   type: 'xai',
   i18nPrefix: 'xai_quota',
   filterFn: (file) => isXaiFile(file) && !isDisabledAuthFile(file),
-  fetchQuota: fetchXaiQuota,
-  enrichQuota: async (file, summary) => {
-    const authIndex = normalizeAuthIndex(file['auth_index'] ?? file.authIndex);
-    if (!authIndex) return summary;
-    return withSubscriptionPlan(summary, await requestXaiSubscription(authIndex));
-  },
+  fetchQuota: loadXaiQuota('cached'),
+  refreshQuota: loadXaiQuota('refresh'),
+  // The paid probe sends a chat completion, so it only runs on an explicit click.
+  skipAutoLoad: isPaidXaiAuthFile,
   storeSelector: (state) => state.xaiQuota,
   storeSetter: 'setXaiQuota',
   buildLoadingState: () => ({ status: 'loading', billing: null }),
-  buildSuccessState: (billing) => ({ status: 'success', billing }),
+  buildSuccessState: ({ billing, usage }) => ({ status: 'success', billing, usage }),
   buildErrorState: (message, status) => ({
     status: 'error',
     billing: null,

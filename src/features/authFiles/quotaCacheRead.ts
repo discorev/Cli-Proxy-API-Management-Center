@@ -10,6 +10,7 @@ import type { AuthFileItem } from '@/types';
 import { getStatusFromError } from '@/utils/quota';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import {
+  QUOTA_ADAPTERS,
   getQuotaMap,
   getQuotaSetter,
   type QuotaAdapter,
@@ -21,6 +22,8 @@ import { isRuntimeOnlyAuthFile, type QuotaProviderType } from './constants';
 export const CACHE_READ_ON_MOUNT_TYPES: ReadonlySet<QuotaProviderType> = new Set([
   'claude',
   'codex',
+  'meta',
+  'xai',
 ]);
 
 export const shouldReadQuotaCacheOnMount = (
@@ -29,6 +32,7 @@ export const shouldReadQuotaCacheOnMount = (
   disableControls: boolean
 ): boolean =>
   CACHE_READ_ON_MOUNT_TYPES.has(quotaType) &&
+  !QUOTA_ADAPTERS[quotaType].skipAutoLoad?.(file) &&
   !disableControls &&
   !file.disabled &&
   !isRuntimeOnlyAuthFile(file);

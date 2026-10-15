@@ -9,6 +9,7 @@ import type { XaiBillingSummary, XaiQuotaState } from '@/types';
 import { buildResetDisplay, formatQuotaResetTime, parseIsoToMs } from '@/utils/quota';
 import { useNow } from '@/hooks/useNow';
 import { QuotaMeter } from '../../components/QuotaMeter';
+import { QuotaUsageNotes } from '../../components/QuotaUsageNotes';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { XAI_WEEKLY_ROW_ID, collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
@@ -84,9 +85,23 @@ export function XaiQuotaBody({ quota, classes }: QuotaBodyProps<XaiQuotaState>) 
     [quota, now]
   );
   const billing = quota.billing;
+  const notes = (
+    <QuotaUsageNotes
+      usage={quota.usage}
+      noteClassName={classes.quotaMessage}
+      errorClassName={classes.codexResetCreditsError}
+    />
+  );
 
   if (!billing) {
-    return <div className={classes.quotaMessage}>{t('xai_quota.empty_data')}</div>;
+    return (
+      <>
+        <div className={classes.quotaMessage}>
+          {t(quota.usage?.notFetched ? 'credential_usage.not_fetched' : 'xai_quota.empty_data')}
+        </div>
+        {notes}
+      </>
+    );
   }
 
   if (billing.mode === 'paid-health') {
@@ -282,6 +297,7 @@ export function XaiQuotaBody({ quota, classes }: QuotaBodyProps<XaiQuotaState>) 
           />
         </div>
       )}
+      {notes}
     </>
   );
 }

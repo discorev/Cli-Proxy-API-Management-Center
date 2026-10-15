@@ -366,12 +366,12 @@ describe('reset outcome delivery', () => {
 });
 
 describe('page load versus Refresh all', () => {
-  test('only Devin, Claude and Codex auto-load', () => {
-    expect([...AUTO_LOAD_QUOTA_TYPES].sort()).toEqual(['claude', 'codex', 'devin']);
+  test('Devin and the usage-cache providers auto-load', () => {
+    expect([...AUTO_LOAD_QUOTA_TYPES].sort()).toEqual(['claude', 'codex', 'devin', 'meta', 'xai']);
   });
 
   test('the batch loader reads the cache by default and refreshes on request', async () => {
-    for (const type of ['claude', 'codex'] as const) {
+    for (const type of ['claude', 'codex', 'meta', 'xai'] as const) {
       const adapter = QUOTA_ADAPTERS[type];
       expect(selectQuotaLoader(adapter)).toBe(adapter.fetchQuota);
       expect(selectQuotaLoader(adapter, true)).toBe(adapter.refreshQuota!);
@@ -395,15 +395,21 @@ describe('page load versus Refresh all', () => {
   });
 });
 
-test('Claude and Codex data modules no longer reach upstream directly', async () => {
+test('Claude, Codex and Meta data modules no longer reach upstream directly', async () => {
   for (const path of [
     'src/features/quota/providers/claude/data.ts',
     'src/features/quota/providers/codex/data.ts',
     'src/features/quota/providers/claude/ClaudeResetGrants.tsx',
     'src/services/api/claudeResetGrants.ts',
+    'src/features/quota/providers/meta/data.ts',
   ]) {
     const source = await Bun.file(path).text();
     expect(source).not.toContain('apiCall');
-    expect(source).not.toMatch(/https:\/\/(api\.anthropic|chatgpt)\.com/);
+    expect(source).not.toContain('downloadText');
+    expect(source).not.toMatch(/https:\/\/(api\.anthropic|chatgpt|api\.meta\.ai)/);
   }
+  // xAI keeps api-call only for the paid API health probe; billing is cached.
+  const xai = await Bun.file('src/features/quota/providers/xai/data.ts').text();
+  expect(xai).not.toContain('cli-chat-proxy');
+  expect(xai).not.toContain('XAI_BILLING');
 });

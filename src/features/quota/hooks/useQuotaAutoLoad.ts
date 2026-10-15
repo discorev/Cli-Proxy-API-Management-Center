@@ -7,13 +7,16 @@ import type { QuotaProviderType } from '../providers/types';
 
 /**
  * Providers whose page-load read is loaded automatically. Devin runs its active
- * management query; Claude and Codex read the backend usage cache, which never
- * reaches upstream. Other providers keep click-to-load.
+ * management query; Claude, Codex, Meta and xAI read the backend usage cache,
+ * which never reaches upstream. An adapter's `skipAutoLoad` keeps credentials
+ * whose read probes upstream (paid xAI) click-to-load, as are other providers.
  */
 export const AUTO_LOAD_QUOTA_TYPES: ReadonlySet<QuotaProviderType> = new Set([
   'devin',
   'claude',
   'codex',
+  'meta',
+  'xai',
 ]);
 
 export interface AutoLoadContext {
@@ -34,7 +37,9 @@ export const selectAutoLoadTargets = (
 ): QuotaFileEntry[] =>
   entries.filter((entry) => {
     const { type, file } = entry;
-    if (!AUTO_LOAD_QUOTA_TYPES.has(type)) return false;
+    if (!AUTO_LOAD_QUOTA_TYPES.has(type) || QUOTA_ADAPTERS[type].skipAutoLoad?.(file)) {
+      return false;
+    }
     const key = JSON.stringify([
       session,
       type,

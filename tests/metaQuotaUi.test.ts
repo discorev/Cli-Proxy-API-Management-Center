@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import i18n from '@/i18n';
-import type { AuthFileItem, MetaQuotaState } from '@/types';
+import type { AuthFileItem, MetaQuotaState, QuotaUsageMeta } from '@/types';
 import { MetaQuotaBody } from '@/features/quota/providers/meta/MetaQuotaBody';
 import { META_CONFIG } from '@/features/quota/providers/meta/data';
 import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
@@ -33,6 +33,15 @@ const snapshot = (): MetaQuotaState => ({
     ],
   },
 });
+const cachedUsage: QuotaUsageMeta = {
+  fetchedAtMs: 1,
+  nextFetchAtMs: null,
+  cooldownUntilMs: null,
+  lastError: '',
+  fetchAdvanced: false,
+  notFetched: false,
+  deferredUntilMs: null,
+};
 afterEach(() => useQuotaStore.getState().clearQuotaCache());
 
 describe('Muse quota UI integration', () => {
@@ -47,14 +56,8 @@ describe('Muse quota UI integration', () => {
         'loading',
         'load_failed',
         'missing_auth_index',
-        'missing_file',
-        'missing_dca_token',
-        'invalid_auth_file',
-        'download_failed',
-        'stale_request',
         'empty_data',
-        'request_failed',
-        'invalid_response',
+        'empty_windows',
         'plan',
         'active',
         'inactive',
@@ -105,7 +108,10 @@ describe('Muse quota UI integration', () => {
   test('renders the key endpoint response as 98% window and 100% weekly remaining', () => {
     const data = parseMetaQuotaPayload(metaQuotaResponse)!;
     const markup = renderToStaticMarkup(
-      createElement(MetaQuotaBody, { quota: META_CONFIG.buildSuccessState(data), classes })
+      createElement(MetaQuotaBody, {
+        quota: META_CONFIG.buildSuccessState({ data, usage: cachedUsage }),
+        classes,
+      })
     );
     expect(markup).toContain('Muse Code Everyday Usage');
     expect(markup).toContain('aria-valuenow="98"');
@@ -117,7 +123,7 @@ describe('Muse quota UI integration', () => {
 
   test('missing usage shows unknown windows and a first-request hint, not full meters', () => {
     const data = parseMetaQuotaPayload({ api_key: 'LLM|fixture-only' })!;
-    const quota = META_CONFIG.buildSuccessState(data);
+    const quota = META_CONFIG.buildSuccessState({ data, usage: cachedUsage });
     expect(quota.status).toBe('success');
     const markup = renderToStaticMarkup(createElement(MetaQuotaBody, { quota, classes }));
     expect(markup).toContain(i18n.t('meta_quota.empty_data'));
