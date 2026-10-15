@@ -2,8 +2,9 @@
  * 额度查询页：提供商汇总条 + 分区行表。
  *
  * 保留的行为契约（重设计不改）：
- * - Devin, Claude and Codex load on every visit to the page (Claude/Codex read the
- *   backend usage cache); other providers keep click-to-load; no polling;
+ * - Devin, Claude, Codex, Meta and xAI load on every visit to the page (all but Devin
+ *   read the backend usage cache; paid xAI API credentials stay click-to-load);
+ *   other providers keep click-to-load; no polling;
  * - cacheGeneration 会话隔离 + request-id 去重（见 useQuotaBatchLoader）；
  * - 文件列表变化后按 provider 剪枝额度缓存（已删文件不残留）；
  * - useHeaderRefresh 单槽位：本页唯一注册者，全局刷新 = 重取文件列表。

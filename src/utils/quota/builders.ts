@@ -458,12 +458,11 @@ export function resolveXaiSubscriptionPlan(
   const label = normalizeStringValue(display) ?? normalizeStringValue(tier);
   if (!label) return null;
   const key = `${display ?? ''} ${tier ?? ''}`.toLowerCase().replace(/[^a-z0-9]+/g, '');
-  const planTier =
-    key.includes('heavy')
-      ? 'elite'
-      : key.includes('supergrok') || key.includes('premium')
-        ? 'premium'
-        : 'standard';
+  const planTier = key.includes('heavy')
+    ? 'elite'
+    : key.includes('supergrok') || key.includes('premium')
+      ? 'premium'
+      : 'standard';
   return { label, tier: planTier };
 }
 
@@ -475,9 +474,15 @@ export function buildXaiBillingSummary(
   const summary = emptyXaiBillingSummary();
   const currentPeriod = config.currentPeriod ?? config.current_period ?? null;
   const periodType = resolveXaiPeriodType(currentPeriod);
-  const creditUsagePercent = normalizeNumberValue(
-    config.creditUsagePercent ?? config.credit_usage_percent
-  );
+  const rawCreditUsagePercent = config.creditUsagePercent ?? config.credit_usage_percent;
+  // Protobuf JSON omits zero scalars, so a weekly period without a percentage
+  // is 0% used. A present but unparsable value stays unknown.
+  const creditUsagePercent =
+    rawCreditUsagePercent === undefined || rawCreditUsagePercent === null
+      ? periodType === 'weekly'
+        ? 0
+        : null
+      : normalizeNumberValue(rawCreditUsagePercent);
   const periodStart =
     normalizeStringValue(currentPeriod?.start) ??
     normalizeStringValue(config.billingPeriodStart ?? config.billing_period_start) ??

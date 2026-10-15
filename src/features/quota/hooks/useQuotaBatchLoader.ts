@@ -14,14 +14,7 @@ import { captureQuotaCacheGeneration, commitIfQuotaCacheCurrent } from '@/stores
 import { getStatusFromError } from '@/utils/quota';
 import { getQuotaCacheKey } from '@/utils/quota/identity';
 import type { QuotaFileEntry } from '../logic';
-import {
-  QUOTA_ADAPTERS,
-  getQuotaMap,
-  getQuotaSetter,
-  selectQuotaLoader,
-  type QuotaCardState,
-} from '../providers';
-import { enrichQuotaInBackground } from '../quotaEnrichment';
+import { QUOTA_ADAPTERS, getQuotaMap, getQuotaSetter, selectQuotaLoader } from '../providers';
 import type { QuotaProviderType } from '../providers/types';
 
 export interface QuotaLoadOptions {
@@ -100,7 +93,6 @@ export function useQuotaBatchLoader() {
 
             if (requestId !== requestIdRef.current) return;
 
-            const committedStates = new Map<string, QuotaCardState>();
             setQuota((prev) => {
               const nextState = { ...prev };
               results.forEach((result) => {
@@ -114,18 +106,11 @@ export function useQuotaBatchLoader() {
                             result.error || t('common.unknown_error'),
                             result.errorStatus
                           );
-                    committedStates.set(result.cacheKey, nextState[result.cacheKey]);
                   },
                   result.name
                 );
               });
               return nextState;
-            });
-            results.forEach((result, index) => {
-              const state = committedStates.get(result.cacheKey);
-              if (result.status === 'success' && state) {
-                void enrichQuotaInBackground(adapter, entries[index].file, result.data, state, t);
-              }
             });
           })
         );

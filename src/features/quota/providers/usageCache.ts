@@ -1,5 +1,5 @@
 /**
- * Shared transport for the backend usage cache (Claude and Codex).
+ * Shared transport for the backend usage cache (Claude, Codex, Meta and xAI).
  * React-free: the provider data modules turn the cached raw bodies into state.
  */
 

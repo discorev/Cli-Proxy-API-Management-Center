@@ -1,17 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { TFunction } from 'i18next';
 import { XAI_CONFIG } from '@/features/quota/providers/xai/data';
-import { apiCallApi, type ApiCallRequest, type ApiCallResult } from '@/services/api';
-import {
-  XAI_API_CHAT_URL,
-  XAI_API_ME_URL,
-  XAI_BILLING_MONTHLY_URL,
-  XAI_BILLING_WEEKLY_URL,
-  isPaidXaiAuthFile,
-} from '@/utils/quota';
+import { apiCallApi, apiClient, type ApiCallRequest, type ApiCallResult } from '@/services/api';
+import { XAI_API_CHAT_URL, XAI_API_ME_URL, isPaidXaiAuthFile } from '@/utils/quota';
 
 const t = ((key: string) => key) as unknown as TFunction;
 const originalApiCallRequest = apiCallApi.request;
+const originalGet = apiClient.get.bind(apiClient);
+const originalPost = apiClient.post.bind(apiClient);
 
 const result = (statusCode: number, body: unknown = null): ApiCallResult => ({
   statusCode,
@@ -28,15 +24,35 @@ const encodeJwt = (payload: Record<string, unknown>): string => {
   return `header.${encoded}.signature`;
 };
 
-describe('xAI paid OAuth quota fallback', () => {
+const paidFile = {
+  name: 'paid.json',
+  type: 'xai',
+  auth_index: 'xai:1',
+  using_api: true,
+  prefix: 'paid',
+};
+
+describe('xAI paid API health probe', () => {
   let requests: ApiCallRequest[];
+  let cacheCalls: string[];
 
   beforeEach(() => {
     requests = [];
+    cacheCalls = [];
+    apiClient.get = (async (url: string) => {
+      cacheCalls.push(`GET ${url}`);
+      return [];
+    }) as typeof apiClient.get;
+    apiClient.post = (async (url: string) => {
+      cacheCalls.push(`POST ${url}`);
+      return [];
+    }) as typeof apiClient.post;
   });
 
   afterEach(() => {
     apiCallApi.request = originalApiCallRequest;
+    apiClient.get = originalGet;
+    apiClient.post = originalPost;
   });
 
   test('recognizes paid credentials without trusting individual route hints', () => {
@@ -57,121 +73,66 @@ describe('xAI paid OAuth quota fallback', () => {
     );
   });
 
-  test('skips free billing endpoints for a recognized paid list entry', async () => {
-    apiCallApi.request = async (payload) => {
-      requests.push(payload);
-      if (payload.url === XAI_API_ME_URL) {
-        return result(200, { user_id: 'user-1', team_id: 'team-1' });
-      }
-      return result(200, { choices: [] });
-    };
-
-    const summary = await XAI_CONFIG.fetchQuota(
-      {
-        name: 'paid.json',
-        type: 'xai',
-        auth_index: 'xai:1',
-        using_api: true,
-        prefix: 'paid',
-      },
-      t
-    );
-
-    expect(requests.map((request) => request.url)).toEqual([XAI_API_ME_URL, XAI_API_CHAT_URL]);
-    const chatRequest = requests.find((request) => request.url === XAI_API_CHAT_URL);
-    expect(JSON.parse(chatRequest?.data ?? '{}')).toMatchObject({
-      model: 'grok-4.5',
-      max_tokens: 1,
-      stream: false,
-    });
-    expect(summary).toMatchObject({
-      mode: 'paid-health',
-      source: 'api.x.ai-fallback',
-      planType: 'paid',
-      healthStatus: 'chat-ok',
-      userId: 'user-1',
-      teamId: 'team-1',
-    });
+  test('paid credentials skip auto-load', () => {
+    expect(XAI_CONFIG.skipAutoLoad?.(paidFile)).toBe(true);
+    expect(XAI_CONFIG.skipAutoLoad?.({ ...paidFile, prefix: undefined })).toBe(false);
   });
 
-  test('keeps existing billing behavior when only one route hint is present', async () => {
+  for (const mode of ['fetchQuota', 'refreshQuota'] as const) {
+    test(`${mode} probes /v1/me and a 1-token chat without the usage cache`, async () => {
+      apiCallApi.request = async (payload) => {
+        requests.push(payload);
+        if (payload.url === XAI_API_ME_URL) {
+          return result(200, { user_id: 'user-1', team_id: 'team-1' });
+        }
+        return result(200, { choices: [] });
+      };
+
+      const data = await XAI_CONFIG[mode]!(paidFile, t);
+
+      expect(cacheCalls).toEqual([]);
+      expect(requests.map((request) => request.url)).toEqual([XAI_API_ME_URL, XAI_API_CHAT_URL]);
+      const chatRequest = requests.find((request) => request.url === XAI_API_CHAT_URL);
+      expect(JSON.parse(chatRequest?.data ?? '{}')).toMatchObject({
+        model: 'grok-4.5',
+        max_tokens: 1,
+        stream: false,
+      });
+      expect(data.usage).toBeUndefined();
+      expect(data.billing).toMatchObject({
+        mode: 'paid-health',
+        source: 'api.x.ai-fallback',
+        planType: 'paid',
+        healthStatus: 'chat-ok',
+        userId: 'user-1',
+        teamId: 'team-1',
+      });
+    });
+  }
+
+  test('a failed chat probe rejects with its status', async () => {
+    apiCallApi.request = async (payload) =>
+      payload.url === XAI_API_CHAT_URL ? result(401, { error: 'Invalid token' }) : result(200, {});
+
+    await expect(XAI_CONFIG.fetchQuota(paidFile, t)).rejects.toMatchObject({ status: 401 });
+  });
+
+  test('a using_api credential without the paid prefix reads the usage cache', async () => {
     apiCallApi.request = async (payload) => {
       requests.push(payload);
-      if (payload.url === XAI_BILLING_WEEKLY_URL) {
-        return result(200, {
-          config: {
-            currentPeriod: { type: 'weekly' },
-            creditUsagePercent: 25,
-          },
-        });
-      }
-      if (payload.url === XAI_BILLING_MONTHLY_URL) {
-        return result(200, {
-          config: {
-            monthlyLimit: { val: 10000 },
-            used: { val: 2500 },
-            billingPeriodStart: '2026-07-01T00:00:00Z',
-            billingPeriodEnd: '2026-08-01T00:00:00Z',
-          },
-        });
-      }
-      throw new Error(`Unexpected URL: ${payload.url}`);
+      return result(200, {});
     };
+    apiClient.get = (async (url: string) => {
+      cacheCalls.push(`GET ${url}`);
+      return [{ auth_index: 'xai:3', raw: {} }];
+    }) as typeof apiClient.get;
 
-    const summary = await XAI_CONFIG.fetchQuota(
+    await XAI_CONFIG.fetchQuota(
       { name: 'free.json', type: 'xai', auth_index: 'xai:3', using_api: true },
       t
     );
 
-    expect(requests.map((request) => request.url).sort()).toEqual(
-      [XAI_BILLING_WEEKLY_URL, XAI_BILLING_MONTHLY_URL].sort()
-    );
-    expect(summary).toMatchObject({
-      mode: 'billing',
-      source: 'cli-chat-proxy',
-      periodType: 'weekly',
-      usagePercent: 25,
-      monthlyLimitCents: 10000,
-      billingPeriodEnd: '2026-08-01T00:00:00Z',
-      resetAtMs: null,
-      periodHours: null,
-    });
-    expect(summary.periodStart).toBeUndefined();
-    expect(summary.periodEnd).toBeUndefined();
-  });
-
-  test('falls back to paid health after both free billing probes fail', async () => {
-    apiCallApi.request = async (payload) => {
-      requests.push(payload);
-      if (payload.url === XAI_BILLING_WEEKLY_URL || payload.url === XAI_BILLING_MONTHLY_URL) {
-        return result(403, { error: 'Access denied' });
-      }
-      if (payload.url === XAI_API_ME_URL) return result(200, { user_id: 'paid-user' });
-      return result(200, { choices: [] });
-    };
-
-    const summary = await XAI_CONFIG.fetchQuota(
-      { name: 'unknown.json', type: 'xai', auth_index: 'xai:4' },
-      t
-    );
-
-    expect(requests.map((request) => request.url)).toEqual([
-      XAI_BILLING_WEEKLY_URL,
-      XAI_BILLING_MONTHLY_URL,
-      XAI_API_ME_URL,
-      XAI_API_CHAT_URL,
-    ]);
-    expect(summary).toMatchObject({ mode: 'paid-health', userId: 'paid-user' });
-  });
-
-  test('preserves the billing error when the paid fallback also fails', async () => {
-    apiCallApi.request = async (payload) => {
-      if (payload.url === XAI_API_CHAT_URL) return result(401, { error: 'Invalid token' });
-      return result(403, { error: 'Access denied' });
-    };
-
-    await expect(
-      XAI_CONFIG.fetchQuota({ name: 'invalid.json', type: 'xai', auth_index: 'xai:5' }, t)
-    ).rejects.toMatchObject({ status: 403 });
+    expect(requests).toEqual([]);
+    expect(cacheCalls).toEqual(['GET /credentials/usage']);
   });
 });

@@ -39,7 +39,7 @@ export interface QuotaAdapter {
   filterFn: (file: AuthFileItem) => boolean;
   fetchQuota: (file: AuthFileItem, t: TFunction) => Promise<unknown>;
   refreshQuota?: (file: AuthFileItem, t: TFunction, previous?: QuotaCardState) => Promise<unknown>;
-  enrichQuota?: (file: AuthFileItem, data: unknown, t: TFunction) => Promise<unknown>;
+  skipAutoLoad?: (file: AuthFileItem) => boolean;
   resetQuota?: (
     file: AuthFileItem,
     t: TFunction,
@@ -81,7 +81,7 @@ type QuotaLoader = (
 export const getQuotaRefresher = (adapter: QuotaAdapter): QuotaLoader =>
   adapter.refreshQuota ?? adapter.fetchQuota;
 
-/** Page load reads (the usage cache for Claude/Codex); Refresh all uses the refresher. */
+/** Page load reads (the usage cache where backed by it); Refresh all uses the refresher. */
 export const selectQuotaLoader = (adapter: QuotaAdapter, refresh = false): QuotaLoader =>
   refresh ? getQuotaRefresher(adapter) : adapter.fetchQuota;
 

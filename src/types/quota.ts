@@ -4,7 +4,7 @@
 
 import type { AnthropicResetGrantStatus } from '@/services/api/claudeResetGrants';
 
-/** Backend usage-cache state for a Claude or Codex credential (times in epoch ms). */
+/** Backend usage-cache state for a usage-cache credential (times in epoch ms). */
 export interface QuotaUsageMeta {
   fetchedAtMs: number | null;
   nextFetchAtMs: number | null;
@@ -324,6 +324,7 @@ export interface MetaQuotaData {
 export interface MetaQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   data?: MetaQuotaData;
+  usage?: QuotaUsageMeta;
   error?: string;
   errorStatus?: number;
 }
@@ -492,6 +493,8 @@ export interface XaiBillingSummary {
 export interface XaiQuotaState {
   status: 'idle' | 'loading' | 'success' | 'error';
   billing: XaiBillingSummary | null;
+  /** Absent for paid API credentials, which keep the direct health probe. */
+  usage?: QuotaUsageMeta;
   error?: string;
   errorStatus?: number;
 }

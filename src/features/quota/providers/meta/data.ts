@@ -1,39 +1,47 @@
+/**
+ * Meta (Muse) quota data layer: plan and usage windows parsed from the backend
+ * usage cache. The backend owns the Muse key call and its DCA credential, so the
+ * browser never handles the DCA token. React-free; consumed directly by tests.
+ */
+
 import type { TFunction } from 'i18next';
-import type { MetaQuotaData, MetaQuotaState } from '@/types';
-import { apiCallApi } from '@/services/api/apiCall';
-import { authFilesApi } from '@/services/api/authFiles';
-import { captureQuotaCacheGeneration, commitIfQuotaCacheCurrent } from '@/stores/useQuotaStore';
+import type { AuthFileItem, MetaQuotaData, MetaQuotaState, QuotaUsageMeta } from '@/types';
+import { parseMetaQuotaPayload } from '@/services/api/metaQuota';
 import { isDisabledAuthFile, resolveAuthProvider } from '@/utils/quota';
 import type { QuotaProviderData } from '../types';
-import { createMetaQuotaFetcher, MetaQuotaError } from './requests';
+import { loadUsageEntry, type UsageCacheResult, type UsageLoadMode } from '../usageCache';
 
-const fetchMetaQuota = createMetaQuotaFetcher({
-  request: (payload) => apiCallApi.request(payload),
-  downloadText: (name) => authFilesApi.downloadText(name),
-  captureCurrent: (name) => {
-    const generation = captureQuotaCacheGeneration(name);
-    return () => commitIfQuotaCacheCurrent(generation, () => {});
-  },
-});
+export interface MetaQuotaResult {
+  /** Absent until the backend has cached a parsable Muse key response. */
+  data?: MetaQuotaData;
+  usage: QuotaUsageMeta;
+}
 
-export const META_CONFIG: QuotaProviderData<MetaQuotaState, MetaQuotaData> = {
+/** `raw.usage` is the backend's sanitized Muse key response, upstream field names kept. */
+export const buildMetaQuotaResult = ({ entry, meta }: UsageCacheResult): MetaQuotaResult => {
+  const data = entry.raw.usage === undefined ? null : parseMetaQuotaPayload(entry.raw.usage);
+  return data ? { data, usage: meta } : { usage: meta };
+};
+
+const loadMetaQuota =
+  (mode: UsageLoadMode) =>
+  async (file: AuthFileItem, t: TFunction, previous?: MetaQuotaState): Promise<MetaQuotaResult> =>
+    buildMetaQuotaResult(
+      await loadUsageEntry(file, t, 'meta_quota', mode, {
+        previousFetchedAtMs: previous?.usage?.fetchedAtMs,
+      })
+    );
+
+export const META_CONFIG: QuotaProviderData<MetaQuotaState, MetaQuotaResult> = {
   type: 'meta',
   i18nPrefix: 'meta_quota',
   filterFn: (file) => resolveAuthProvider(file) === 'meta' && !isDisabledAuthFile(file),
-  fetchQuota: async (file, t: TFunction) => {
-    try {
-      return await fetchMetaQuota(file);
-    } catch (error: unknown) {
-      if (error instanceof MetaQuotaError) {
-        error.message = t(`meta_quota.${error.code}`, { status: error.status });
-      }
-      throw error;
-    }
-  },
+  fetchQuota: loadMetaQuota('cached'),
+  refreshQuota: loadMetaQuota('refresh'),
   storeSelector: (state) => state.metaQuota,
   storeSetter: 'setMetaQuota',
   buildLoadingState: () => ({ status: 'loading' }),
-  buildSuccessState: (data) => ({ status: 'success', data }),
+  buildSuccessState: ({ data, usage }) => ({ status: 'success', data, usage }),
   buildErrorState: (error, errorStatus) => ({
     status: 'error',
     error,

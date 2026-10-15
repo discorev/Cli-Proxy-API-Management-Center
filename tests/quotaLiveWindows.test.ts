@@ -260,10 +260,14 @@ describe('Auth Files quota card reads the cache on mount', () => {
     }) as typeof apiClient.get;
   };
 
-  test('only usable Claude and Codex cards read on mount', () => {
+  test('only usable usage-cache cards read on mount', () => {
     const file = claudeFile as AuthFileItem;
     expect(shouldReadQuotaCacheOnMount('claude', file, false)).toBe(true);
     expect(shouldReadQuotaCacheOnMount('codex', file, false)).toBe(true);
+    expect(shouldReadQuotaCacheOnMount('meta', file, false)).toBe(true);
+    expect(shouldReadQuotaCacheOnMount('xai', file, false)).toBe(true);
+    const paidXai = { name: 'paid.json', type: 'xai', using_api: true, prefix: 'paid' };
+    expect(shouldReadQuotaCacheOnMount('xai', paidXai, false)).toBe(false);
     expect(shouldReadQuotaCacheOnMount('devin', file, false)).toBe(false);
     expect(shouldReadQuotaCacheOnMount('claude', file, true)).toBe(false);
     expect(shouldReadQuotaCacheOnMount('claude', { ...file, disabled: true }, false)).toBe(false);

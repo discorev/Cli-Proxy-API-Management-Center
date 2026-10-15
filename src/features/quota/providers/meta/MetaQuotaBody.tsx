@@ -4,6 +4,7 @@ import type { MetaQuotaState } from '@/types';
 import { useNow } from '@/hooks/useNow';
 import { buildResetDisplay } from '@/utils/quota';
 import { QuotaMeter } from '../../components/QuotaMeter';
+import { QuotaUsageNotes } from '../../components/QuotaUsageNotes';
 import { QuotaResetLabel } from '../../components/QuotaResetLabel';
 import { collectQuotaRowInstants, pickUrgentRowId } from '../../resetSchedule';
 import type { QuotaBodyProps } from '../../types';
@@ -16,7 +17,23 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
     [quota, now]
   );
   const data = quota.data;
-  if (!data) return <div className={classes.quotaMessage}>{t('meta_quota.empty_data')}</div>;
+  const notes = (
+    <QuotaUsageNotes
+      usage={quota.usage}
+      noteClassName={classes.quotaMessage}
+      errorClassName={classes.codexResetCreditsError}
+    />
+  );
+  if (!data) {
+    return (
+      <>
+        <div className={classes.quotaMessage}>
+          {t(quota.usage?.notFetched ? 'credential_usage.not_fetched' : 'meta_quota.empty_data')}
+        </div>
+        {notes}
+      </>
+    );
+  }
 
   return (
     <>
@@ -78,6 +95,7 @@ export function MetaQuotaBody({ quota, classes }: QuotaBodyProps<MetaQuotaState>
           </div>
         );
       })}
+      {notes}
     </>
   );
 }

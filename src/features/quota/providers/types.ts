@@ -61,8 +61,8 @@ export interface QuotaProviderData<TState, TData> {
    * is the card's state before the refresh, used to tell a fetch from a cache hit.
    */
   refreshQuota?: (file: AuthFileItem, t: TFunction, previous?: TState) => Promise<TData>;
-  /** Optional details loaded only after the primary quota has been committed. */
-  enrichQuota?: (file: AuthFileItem, data: TData, t: TFunction) => Promise<TData>;
+  /** Credentials the page must not load automatically (their read probes upstream). */
+  skipAutoLoad?: (file: AuthFileItem) => boolean;
   resetQuota?: (
     file: AuthFileItem,
     t: TFunction,

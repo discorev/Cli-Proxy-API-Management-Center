@@ -122,7 +122,7 @@ export function QuotaRow(props: QuotaRowProps) {
     entry.type === 'claude' ? (quota as ClaudeQuotaState | undefined) : undefined,
     !canRefresh || loading || resetting
   );
-  // Only the usage-cache providers (Claude, Codex) carry this.
+  // Only the usage-cache providers (Claude, Codex, Meta, cache-backed xAI) carry this.
   const usage =
     status === 'success' ? (quota as { usage?: QuotaUsageMeta } | undefined)?.usage : undefined;
 

@@ -1,5 +1,5 @@
 /**
- * Cached subscription usage for OAuth credentials (Claude, Codex).
+ * Cached subscription usage for OAuth credentials (Claude, Codex, Meta, xAI).
  *
  * The backend owns every upstream usage, profile, subscription and reset call,
  * including the per-credential fetch floor and 429 cooldowns. The dashboard only
@@ -15,6 +15,8 @@ export interface CredentialUsageRaw {
   usage?: unknown;
   profile?: unknown;
   subscription?: unknown;
+  /** xAI's monthly billing body; `usage` holds the weekly one. */
+  billing?: unknown;
   resetCredits?: unknown;
 }
 
@@ -121,6 +123,7 @@ const normalizeRaw = (value: unknown): CredentialUsageRaw => {
   if (value.subscription !== undefined && value.subscription !== null) {
     raw.subscription = value.subscription;
   }
+  if (value.billing !== undefined && value.billing !== null) raw.billing = value.billing;
   if (value.reset_credits !== undefined && value.reset_credits !== null) {
     raw.resetCredits = value.reset_credits;
   }

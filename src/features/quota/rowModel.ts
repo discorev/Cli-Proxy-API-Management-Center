@@ -98,6 +98,14 @@ const emptyUsageMessage = (
     : t(`${i18nPrefix}.empty_windows`);
 };
 
+/** Meta and xAI without a cached body: never fetched, or fetched with nothing usable. */
+const noUsageMessage = (
+  quota: MetaQuotaState | XaiQuotaState,
+  i18nPrefix: 'meta_quota' | 'xai_quota',
+  t: TFunction
+): string =>
+  quota.usage?.notFetched ? t('credential_usage.not_fetched') : t(`${i18nPrefix}.empty_data`);
+
 /* ---------------------------------------------------------------- Claude */
 
 function claudeRowModel(quota: ClaudeQuotaState, t: TFunction): QuotaRowModel {
@@ -272,7 +280,7 @@ function xaiPlanLabel(monthlyLimitCents: number | null, t: TFunction): string | 
 
 function xaiRowModel(quota: XaiQuotaState, t: TFunction): QuotaRowModel {
   const billing = quota.billing;
-  if (!billing) return { ...EMPTY_MODEL, message: t('xai_quota.empty_data') };
+  if (!billing) return { ...EMPTY_MODEL, message: noUsageMessage(quota, 'xai_quota', t) };
   if (billing.mode === 'paid-health') {
     return {
       plan: billing.planLabel ?? t('xai_quota.plan_paid'),
@@ -351,7 +359,7 @@ function xaiRowModel(quota: XaiQuotaState, t: TFunction): QuotaRowModel {
 
 function metaRowModel(quota: MetaQuotaState, t: TFunction): QuotaRowModel {
   const data = quota.data;
-  if (!data) return { ...EMPTY_MODEL, message: t('meta_quota.empty_data') };
+  if (!data) return { ...EMPTY_MODEL, message: noUsageMessage(quota, 'meta_quota', t) };
   return {
     plan: data.planName ?? null,
     planNote:
