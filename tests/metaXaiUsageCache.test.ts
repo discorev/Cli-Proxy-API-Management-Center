@@ -4,7 +4,7 @@
  * never a direct upstream request from the browser.
  */
 
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import type { TFunction } from 'i18next';
 import { apiCallApi } from '@/services/api/apiCall';
 import { apiClient } from '@/services/api/client';
@@ -64,7 +64,13 @@ const stubBackend = (respond: (call: Call) => unknown) => {
   return calls;
 };
 
+// The loaders read the real clock; pin it so fixture resets never fall into the past.
+beforeEach(() => {
+  setSystemTime(NOW);
+});
+
 afterEach(() => {
+  setSystemTime();
   apiClient.get = originalGet;
   apiClient.post = originalPost;
   apiCallApi.request = originalApiCall;
