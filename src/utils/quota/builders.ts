@@ -395,6 +395,10 @@ function resolveXaiPeriodType(period?: XaiBillingPeriod | null): XaiBillingPerio
   const rawType = normalizeStringValue(period?.type)?.toLowerCase() ?? '';
   if (rawType.includes('weekly')) return 'weekly';
   if (rawType.includes('monthly')) return 'monthly';
+  // Like the proxy, treat an untyped period spanning seven days (within an
+  // hour, for daylight-saving shifts) as weekly.
+  const { periodHours } = xaiPeriodInstants(period?.start, period?.end);
+  if (periodHours !== null && Math.abs(periodHours - 168) <= 1) return 'weekly';
   return 'unknown';
 }
 
@@ -587,6 +591,16 @@ export function mergeXaiBillingSummaries(
   const periodStart = periodSummary.periodStart;
   const periodEnd = periodSummary.periodEnd;
   const periodInstants = xaiPeriodInstants(periodStart, periodEnd);
+  // Spending amounts stay atomic too: the weekly endpoint reports zero
+  // on-demand values, so the monthly endpoint's amounts win whenever it has any.
+  const fallbackHasMoney = [
+    fallback.monthlyLimitCents,
+    fallback.usedCents,
+    fallback.onDemandCapCents,
+    fallback.onDemandUsedCents,
+  ].some((value) => value !== null);
+  const money = fallbackHasMoney ? fallback : primary;
+  const otherMoney = fallbackHasMoney ? primary : fallback;
 
   return {
     mode: 'billing',
@@ -598,17 +612,17 @@ export function mergeXaiBillingSummaries(
     resetAtMs: periodInstants.resetAtMs,
     periodHours: periodInstants.periodHours,
     productUsage: primary.productUsage.length > 0 ? primary.productUsage : fallback.productUsage,
-    monthlyLimitCents: primary.monthlyLimitCents ?? fallback.monthlyLimitCents,
-    usedCents: primary.usedCents ?? fallback.usedCents,
-    includedUsedCents: primary.includedUsedCents ?? fallback.includedUsedCents,
-    onDemandCapCents: primary.onDemandCapCents ?? fallback.onDemandCapCents,
-    onDemandUsedCents: primary.onDemandUsedCents ?? fallback.onDemandUsedCents,
-    onDemandUsedPercent: primary.onDemandUsedPercent ?? fallback.onDemandUsedPercent,
-    prepaidBalanceCents: primary.prepaidBalanceCents ?? fallback.prepaidBalanceCents,
+    monthlyLimitCents: money.monthlyLimitCents,
+    usedCents: money.usedCents,
+    includedUsedCents: money.includedUsedCents,
+    onDemandCapCents: money.onDemandCapCents,
+    onDemandUsedCents: money.onDemandUsedCents,
+    onDemandUsedPercent: money.onDemandUsedPercent,
+    prepaidBalanceCents: money.prepaidBalanceCents ?? otherMoney.prepaidBalanceCents,
     planLabel: primary.planLabel ?? fallback.planLabel,
     planTier: primary.planTier ?? fallback.planTier,
     billingPeriodStart: primary.billingPeriodStart ?? fallback.billingPeriodStart,
     billingPeriodEnd: primary.billingPeriodEnd ?? fallback.billingPeriodEnd,
-    usedPercent: primary.usedPercent ?? fallback.usedPercent,
+    usedPercent: money.usedPercent,
   };
 }

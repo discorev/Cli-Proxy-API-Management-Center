@@ -218,6 +218,30 @@ describe('XaiQuotaBody weekly usage', () => {
     expect(markup).toContain('width:90%');
   });
 
+  test('reads an untyped seven-day period as a 0%-used weekly window beside monthly billing', () => {
+    const quota = quotaFor(
+      { currentPeriod: { start: WEEKLY_PERIOD_START, end: WEEKLY_PERIOD_END } },
+      monthlyConfig({ monthlyLimit: { val: 15000 }, used: { val: 3000 } })
+    );
+
+    expect(quota.billing?.periodType).toBe('weekly');
+    expect(quota.billing?.usagePercent).toBe(0);
+    expect(quota.billing?.resetAtMs).toBe(Date.parse(WEEKLY_PERIOD_END));
+    expect(quota.billing?.usedPercent).toBe(20);
+  });
+
+  test('takes on-demand amounts from the monthly body over the weekly zeros', () => {
+    const quota = quotaFor(
+      weeklyConfig({ onDemandUsed: { val: 0 } }),
+      monthlyConfig({ onDemandCap: { val: 5000 }, onDemandUsed: { val: 1000 } })
+    );
+
+    expect(quota.billing?.periodType).toBe('weekly');
+    expect(quota.billing?.onDemandCapCents).toBe(5000);
+    expect(quota.billing?.onDemandUsedCents).toBe(1000);
+    expect(quota.billing?.onDemandUsedPercent).toBe(20);
+  });
+
   test('keeps the monthly-only zero row when no weekly data exists', () => {
     const markup = render(quotaFor(null, monthlyConfig()));
 
