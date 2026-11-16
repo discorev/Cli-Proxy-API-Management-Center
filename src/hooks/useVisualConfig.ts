@@ -1190,6 +1190,14 @@ function getNextDirtyFields(
     }
   });
   ADDITION_FIELDS.forEach(({ key }) => updateScalarDirty(key));
+  if (Object.prototype.hasOwnProperty.call(patch, 'apiKeyProfiles')) {
+    const sorted = (value: Record<string, string>) =>
+      JSON.stringify(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
+    updateDirty(
+      'apiKeyProfiles',
+      sorted(nextValues.apiKeyProfiles) === sorted(baselineValues.apiKeyProfiles)
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(patch, ICE_KEY)) {
     updateDirty(
       ICE_KEY,
@@ -1450,6 +1458,11 @@ function parseVisualValuesFromYaml(yamlContent: string): VisualConfigValues {
 
     authDir: typeof v8Oauth?.['auth-dir'] === 'string' ? v8Oauth?.['auth-dir'] : '',
     apiKeysText: parseApiKeysText(asRecord(parsed.access)?.['api-keys']),
+    apiKeyProfiles: Object.fromEntries(
+      Object.entries(asRecord(asRecord(parsed.access)?.['api-key-profiles']) ?? {}).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string'
+      )
+    ),
     pluginsEnabled: Boolean(plugins?.enabled),
     pluginStoreSources: parseStringList(plugins?.['store-sources']),
     pluginStoreAuth: parsePluginStoreAuthRules(plugins?.['store-auth']),
@@ -1728,6 +1741,9 @@ export function useVisualConfig() {
         }
 
         if (dirtyFields.has('authDir')) setStringInDoc(doc, ['oauth', 'auth-dir'], values.authDir);
+        if (dirtyFields.has('apiKeyProfiles')) {
+          doc.setIn(['access', 'api-key-profiles'], values.apiKeyProfiles);
+        }
         if (dirtyFields.has('apiKeysText')) {
           const apiKeys = values.apiKeysText
             .split('\n')

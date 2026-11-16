@@ -2232,5 +2232,35 @@
       "in_flight": "该凭证已有重置正在进行。",
       "refused": "未发送重置：当前没有可用的重置。"
     }
+  },
+  "routing_profiles": {
+    "title": "路由配置",
+    "description": "默认使用主配置。其他配置继承主配置，并可覆盖账号优先级、可用状态和模型排除规则。在设置中将配置分配给 API 密钥。",
+    "profile": "路由配置",
+    "master": "主配置（默认）",
+    "new_name": "新配置名称",
+    "create": "创建配置",
+    "remove": "删除配置",
+    "delete_hint": "删除配置前，请先重新分配关联的 API 密钥。全局禁用的账号仍然禁用。",
+    "restrict_accounts": "覆盖账号允许列表（未选择任何账号时禁止访问）",
+    "override_models": "覆盖继承的模型排除规则",
+    "excluded_models": "排除模型，每行一个；* 匹配任意文本",
+    "allow_account": "允许 {{account}}",
+    "priority": "优先级覆盖",
+    "inherited_priority": "继承：{{priority}}",
+    "account_status": "{{account}} 的可用状态",
+    "inherit": "继承",
+    "enabled": "在此配置中启用",
+    "disabled": "在此配置中禁用",
+    "account_models": "此账号的排除模型",
+    "inherit_models": "使用继承的模型排除规则",
+    "add_account": "其他认证 ID、索引或文件名",
+    "add": "添加账号",
+    "priority_hint": "优先使用数值较高的账号。留空时继承主配置或账号优先级。会话亲和性保留符合条件的绑定账号；修改配置后重新绑定。",
+    "save": "保存配置",
+    "discard": "放弃更改",
+    "reload": "重新加载配置",
+    "key_profile": "API 密钥 {{index}} 的路由配置",
+    "assignment_hint": "在认证文件页面管理配置。保存设置后应用分配。"
   }
 }

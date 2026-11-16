@@ -57,6 +57,7 @@ import {
   type AuthFilesSortMode,
 } from '@/features/authFiles/uiState';
 import { useAuthStore, useNotificationStore, useThemeStore } from '@/stores';
+import { RoutingProfilesCard } from '@/features/routingProfiles/RoutingProfilesCard';
 import styles from './AuthFilesPage.module.scss';
 
 const DEFAULT_REGULAR_PAGE_SIZE = 9;
@@ -623,6 +624,7 @@ export function AuthFilesPage() {
       />
 
       <VaultPulse files={files} statusBarCache={statusBarCache} />
+      <RoutingProfilesCard files={files} disabled={disableControls} displayNameFor={displayNameFor} />
 
       <section className={styles.workbench} aria-label={t('auth_files.title_section')}>
         <ProviderTabs

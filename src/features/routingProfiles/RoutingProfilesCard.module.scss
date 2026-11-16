@@ -1,0 +1,53 @@
+.fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin: 16px 0;
+}
+.accounts {
+  display: grid;
+  gap: 12px;
+  max-height: 550px;
+  overflow: auto;
+}
+.account {
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) minmax(100px, 1fr) minmax(140px, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  align-items: center;
+}
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+.textarea {
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+}
+.error {
+  color: $error-color;
+  margin: 12px 0;
+}
+@media (max-width: 700px) {
+  .account {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2234,5 +2234,35 @@
       "in_flight": "A reset is already in progress for this credential.",
       "refused": "No reset sent: no usable reset is available right now."
     }
+  },
+  "routing_profiles": {
+    "title": "Routing profiles",
+    "description": "The master profile applies to every API key by default. Named profiles inherit it and override account priorities, availability and model exclusions. Assign a profile to an API key in Settings.",
+    "profile": "Routing profile",
+    "master": "Master (default)",
+    "new_name": "New profile name",
+    "create": "Create profile",
+    "remove": "Delete profile",
+    "delete_hint": "Reassign API keys before deleting their profile. Globally disabled accounts remain disabled.",
+    "restrict_accounts": "Override the account allowlist (no accounts selected means no access)",
+    "override_models": "Override the inherited model exclusions",
+    "excluded_models": "Excluded models — one per line; * matches any text",
+    "allow_account": "Allow {{account}}",
+    "priority": "Priority override",
+    "inherited_priority": "Inherited: {{priority}}",
+    "account_status": "Availability for {{account}}",
+    "inherit": "Inherit",
+    "enabled": "Enabled in this profile",
+    "disabled": "Disabled in this profile",
+    "account_models": "Excluded models for this account",
+    "inherit_models": "Use inherited model exclusions",
+    "add_account": "Additional auth ID, index or filename",
+    "add": "Add account",
+    "priority_hint": "Higher priorities are preferred. Blank priorities inherit the master or account priority. Session affinity keeps an eligible bound account; changing a profile starts new bindings.",
+    "save": "Save profiles",
+    "discard": "Discard changes",
+    "reload": "Reload profiles",
+    "key_profile": "Routing profile for API key {{index}}",
+    "assignment_hint": "Profiles are managed on Auth Files. Assignments are applied when you save settings."
   }
 }

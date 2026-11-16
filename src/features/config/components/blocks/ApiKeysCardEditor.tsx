@@ -1,4 +1,4 @@
-import { memo, useId, useMemo, useState } from 'react';
+import { memo, useEffect, useId, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -10,10 +10,15 @@ import { generateSecureApiKey } from '@/utils/apiKey';
 import { maskApiKey } from '@/utils/format';
 import { isValidApiKeyCharset } from '@/utils/validation';
 import { ApiKeyStrengthMeter } from './ApiKeyStrengthMeter';
+import { Select } from '@/components/ui/Select';
+import { routingProfilesApi } from '@/services/api/routingProfiles';
+import { apiClient } from '@/services/api/client';
 import styles from './Blocks.module.scss';
 
 interface ApiKeysCardEditorProps {
   value: string;
+  profileAssignments?: Record<string, string>;
+  onProfilesChange?: (value: Record<string, string>) => void;
   disabled?: boolean;
   onChange: (nextValue: string) => void;
 }
@@ -28,9 +33,30 @@ function ScopedApiKeysCardEditor({
   disabled,
   onChange,
   apiBase,
+  profileAssignments = {},
+  onProfilesChange,
 }: ApiKeysCardEditorProps & { apiBase: string }) {
   const [names, setNames] = useState(() => readApiKeyNames(apiBase));
   const [nameValue, setNameValue] = useState('');
+  const [profileNames, setProfileNames] = useState<string[]>([]);
+  const [profilesError, setProfilesError] = useState('');
+  useEffect(() => {
+    let active = true;
+    const revision = apiClient.getConnectionRevision();
+    routingProfilesApi
+      .list()
+      .then((profiles) => {
+        if (active && revision === apiClient.getConnectionRevision())
+          setProfileNames(Object.keys(profiles));
+      })
+      .catch((error: unknown) => {
+        if (active && revision === apiClient.getConnectionRevision())
+          setProfilesError(error instanceof Error ? error.message : String(error));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const apiKeys = useMemo(
@@ -98,6 +124,9 @@ function ScopedApiKeysCardEditor({
   const handleDelete = (apiKeyId: string) => {
     const index = renderApiKeyIds.findIndex((id) => id === apiKeyId);
     if (index < 0) return;
+    const assignments = { ...profileAssignments };
+    delete assignments[apiKeys[index]];
+    onProfilesChange?.(assignments);
     setApiKeyIds(renderApiKeyIds.filter((id) => id !== apiKeyId));
     updateApiKeys(apiKeys.filter((_, i) => i !== index));
   };
@@ -128,6 +157,13 @@ function ScopedApiKeysCardEditor({
     // Retain old fingerprints: configuration edits can still be discarded or fail to save.
     if (editingApiKeyId === null) {
       setApiKeyIds([...renderApiKeyIds, makeClientId()]);
+    }
+    if (editingIndex >= 0 && apiKeys[editingIndex] !== trimmed) {
+      const assignments = { ...profileAssignments };
+      const previous = apiKeys[editingIndex];
+      if (assignments[previous]) assignments[trimmed] = assignments[previous];
+      delete assignments[previous];
+      onProfilesChange?.(assignments);
     }
     if (nextKeys.join('\n') !== apiKeys.join('\n')) updateApiKeys(nextKeys);
     closeModal();
@@ -170,6 +206,26 @@ function ScopedApiKeysCardEditor({
                 <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
               </div>
               <div className="item-actions">
+                {onProfilesChange && (
+                  <Select
+                    ariaLabel={t('routing_profiles.key_profile', { index: index + 1 })}
+                    value={profileAssignments[key] ?? 'default'}
+                    disabled={disabled || !!profilesError}
+                    options={[
+                      { value: 'default', label: t('routing_profiles.master') },
+                      ...[...new Set([...profileNames, ...Object.values(profileAssignments)])]
+                        .filter((name) => name !== 'default')
+                        .sort()
+                        .map((name) => ({ value: name, label: name })),
+                    ]}
+                    onChange={(profile) => {
+                      const assignments = { ...profileAssignments };
+                      if (profile === 'default') delete assignments[key];
+                      else assignments[key] = profile;
+                      onProfilesChange(assignments);
+                    }}
+                  />
+                )}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -201,6 +257,8 @@ function ScopedApiKeysCardEditor({
       )}
 
       <div className="hint">{t('config_management.visual.api_keys.hint')}</div>
+      {onProfilesChange && <div className="hint">{t('routing_profiles.assignment_hint')}</div>}
+      {profilesError && <div role="alert">{profilesError}</div>}
 
       <Modal
         open={modalOpen}
